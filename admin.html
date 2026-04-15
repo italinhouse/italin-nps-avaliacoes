@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel Admin NPS — Ital'in House</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C0392B; --red-dark: #922B21; --cream: #FDF6EE; --gold: #C9A84C;
+      --dark: #1A0A05; --text: #3D1F15; --muted: #7A5A50; --border: #E8D5C4;
+      --card-bg: #FFFFFF; --bg: #F5EDE3; --green: #27AE60; --yellow: #F39C12; --radius: 12px;
+    }
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* LOGIN */
+    #loginScreen {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background:var(--dark);
+      background-image:radial-gradient(ellipse at 20% 30%,rgba(192,57,43,.25) 0%,transparent 55%),
+                       radial-gradient(ellipse at 80% 70%,rgba(201,168,76,.12) 0%,transparent 50%);
+    }
+    .login-card {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(12px); border-radius:20px; padding:52px 44px;
+      width:100%; max-width:420px; text-align:center; animation:fadeUp .5s ease both;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .login-card img { height:48px; margin-bottom:28px; filter:brightness(0) invert(1); }
+    .login-card h2 { color:#FFF; font-family:'Playfair Display',serif; font-size:22px; margin-bottom:6px; }
+    .login-card p  { color:rgba(255,255,255,.45); font-size:13px; margin-bottom:32px; }
+    .login-input {
+      width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15);
+      border-radius:10px; padding:14px 16px; color:#FFF; font-family:'DM Sans',sans-serif;
+      font-size:14px; outline:none; margin-bottom:12px; transition:border-color .2s;
+    }
+    .login-input:focus { border-color:var(--red); }
+    .login-input::placeholder { color:rgba(255,255,255,.3); }
+    .login-btn {
+      width:100%; padding:14px; background:var(--red); color:#FFF; border:none;
+      border-radius:10px; font-size:14px; font-weight:500; cursor:pointer;
+      font-family:'DM Sans',sans-serif; transition:opacity .2s;
+    }
+    .login-btn:hover { opacity:.88; }
+    .login-error { color:#F1948A; font-size:13px; margin-top:10px; display:none; }
+
+    /* DASHBOARD */
+    #dashboard { display:none; min-height:100vh; }
+    .topbar {
+      background:var(--dark); display:flex; align-items:center; justify-content:space-between;
+      padding:0 28px; height:60px; position:sticky; top:0; z-index:100;
+      box-shadow:0 2px 16px rgba(0,0,0,.25);
+    }
+    .topbar-left { display:flex; align-items:center; gap:14px; }
+    .topbar-left img { height:34px; filter:brightness(0) invert(1); }
+    .topbar-title { color:rgba(255,255,255,.55); font-size:13px; }
+    .topbar-badge { background:var(--red); color:#FFF; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+    .logout-btn {
+      background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+      color:rgba(255,255,255,.65); padding:6px 14px; border-radius:8px; font-size:12px;
+      cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s;
+    }
+    .logout-btn:hover { background:rgba(255,255,255,.14); color:#FFF; }
+
+    .content { padding:28px 32px; max-width:1400px; margin:0 auto; }
+
+    /* TABS */
+    .tabs { display:flex; gap:6px; margin-bottom:28px; flex-wrap:wrap; }
+    .tab {
+      padding:9px 20px; border-radius:8px; font-size:13px; font-weight:500;
+      cursor:pointer; border:1px solid var(--border); background:var(--card-bg);
+      color:var(--muted); transition:all .2s;
+    }
+    .tab.active { background:var(--red); color:#FFF; border-color:var(--red); }
+
+    /* KPIs */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+    .kpi { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; }
+    .kpi-label { font-size:12px; color:var(--muted); font-weight:500; letter-spacing:.04em; text-transform:uppercase; margin-bottom:8px; }
+    .kpi-value { font-family:'Playfair Display',serif; font-size:36px; color:var(--dark); }
+    .kpi-value.red { color:var(--red); } .kpi-value.green { color:var(--green); }
+    .kpi-sub { font-size:12px; color:var(--muted); margin-top:4px; }
+
+    /* NPS BAR */
+    .nps-bar-wrap { margin-bottom:28px; }
+    .nps-bar-wrap h3 { font-size:14px; font-weight:500; margin-bottom:12px; color:var(--dark); }
+    .nps-bar { display:flex; border-radius:8px; overflow:hidden; height:28px; gap:2px; }
+    .nps-bar-seg { display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#FFF; transition:flex .5s ease; min-width:0; overflow:hidden; }
+    .nps-bar-seg.d{background:var(--red)} .nps-bar-seg.p{background:var(--yellow)} .nps-bar-seg.pr{background:var(--green)}
+    .nps-bar-labels { display:flex; gap:18px; margin-top:10px; }
+    .nps-bar-labels span { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+    .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+    /* FILTERS */
+    .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+    .filter-input {
+      padding:9px 14px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+      font-family:'DM Sans',sans-serif; color:var(--text); background:var(--card-bg); outline:none; transition:border-color .2s;
+    }
+    .filter-input:focus { border-color:var(--red); }
+    select.filter-input { cursor:pointer; }
+    .btn-action {
+      padding:9px 18px; background:var(--dark); color:#FFF; border:none; border-radius:8px;
+      font-size:13px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:opacity .2s;
+    }
+    .btn-action:hover { opacity:.82; }
+    .ml-auto { margin-left:auto; }
+
+    /* TABLES */
+    .table-wrap { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    thead { background:#FAF2EA; }
+    th { padding:12px 16px; text-align:left; font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; white-space:nowrap; }
+    th:hover { color:var(--red); }
+    td { padding:12px 16px; border-bottom:1px solid #F2E8DF; color:var(--text); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#FDF8F3; }
+
+    .score-pill { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; font-weight:600; font-size:13px; color:#FFF; }
+    .score-pill.detractor{background:var(--red)} .score-pill.passive{background:var(--yellow)} .score-pill.promoter{background:var(--green)}
+    .nps-tag { font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; }
+    .nps-tag.detractor{background:#FDEDEC;color:#922B21} .nps-tag.passive{background:#FEF9E7;color:#7D6608} .nps-tag.promoter{background:#EAFAF1;color:#1E7A40}
+    .comment-text { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
+    .empty-state .icon { font-size:42px; display:block; margin-bottom:12px; }
+    .loading { text-align:center; padding:60px 20px; color:var(--muted); font-size:14px; }
+
+    /* LINKS TAB */
+    .link-row td { padding:10px 16px; }
+    .copy-btn {
+      display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
+      background:#FDF6EE; border:1px solid var(--border); border-radius:6px;
+      font-size:11px; font-weight:500; color:var(--text); cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .copy-btn:hover{background:var(--red);color:#FFF;border-color:var(--red)}
+    .copy-btn.copied{background:var(--green);color:#FFF;border-color:var(--green)}
+    .wa-btn {
+      display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
+      background:#25D366; border:1px solid #25D366; border-radius:6px;
+      font-size:11px; font-weight:500; color:#FFF; cursor:pointer; text-decoration:none; transition:opacity .15s; white-space:nowrap;
+    }
+    .wa-btn:hover { opacity:.85; }
+    .loja-link-text { font-size:11px; color:#1155CC; font-family:monospace; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+    .state-badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; background:#F5EDE3; color:var(--muted); letter-spacing:.04em; }
+    .nps-mini { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; }
+    .nps-mini.good{background:#EAFAF1;color:#1E7A40} .nps-mini.warn{background:#FEF9E7;color:#7D6608} .nps-mini.none{background:#F5EDE3;color:var(--muted)}
+    .stats-count { font-size:12px; color:var(--muted); }
+
+    @media(max-width:720px){
+      .content{padding:16px} .topbar{padding:0 16px}
+      .kpi-grid{grid-template-columns:1fr 1fr}
+      table{font-size:12px} td,th{padding:8px 10px}
+      .loja-link-text{max-width:140px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House"/>
+    <h2>Painel Administrativo</h2>
+    <p>Sistema de avaliações NPS</p>
+    <input class="login-input" type="text" id="loginUser" placeholder="Usuário" autocomplete="username"/>
+    <input class="login-input" type="password" id="loginPass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="loginError">Usuário ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House"/>
+      <span class="topbar-title">Painel NPS</span>
+      <span class="topbar-badge">ADMIN</span>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Sair</button>
+  </nav>
+
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('avaliacoes',this)">📋 Avaliações</div>
+      <div class="tab" onclick="switchTab('lojas',this)">📊 Por Loja</div>
+      <div class="tab" onclick="switchTab('links',this)">🔗 Links das Lojas (68)</div>
+    </div>
+
+    <!-- TAB: Avaliações -->
+    <div id="tabAvaliacoes">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Total de avaliações</div><div class="kpi-value" id="kpiTotal">—</div></div>
+        <div class="kpi"><div class="kpi-label">NPS Geral</div><div class="kpi-value red" id="kpiNPS">—</div><div class="kpi-sub">% promotores − % detratores</div></div>
+        <div class="kpi"><div class="kpi-label">Média de notas</div><div class="kpi-value green" id="kpiMedia">—</div><div class="kpi-sub">de 0 a 10</div></div>
+        <div class="kpi"><div class="kpi-label">Hoje</div><div class="kpi-value" id="kpiHoje">—</div><div class="kpi-sub">nas últimas 24h</div></div>
+        <div class="kpi"><div class="kpi-label">Lojas ativas</div><div class="kpi-value" id="kpiLojas">—</div><div class="kpi-sub">com ao menos 1 avaliação</div></div>
+      </div>
+      <div class="nps-bar-wrap">
+        <h3>Distribuição NPS</h3>
+        <div class="nps-bar">
+          <div class="nps-bar-seg d" id="barDetrator" style="flex:30">Detratores</div>
+          <div class="nps-bar-seg p" id="barPassivo"  style="flex:20">Passivos</div>
+          <div class="nps-bar-seg pr" id="barPromotor" style="flex:50">Promotores</div>
+        </div>
+        <div class="nps-bar-labels">
+          <span><span class="dot" style="background:var(--red)"></span>Detratores (0–6)</span>
+          <span><span class="dot" style="background:var(--yellow)"></span>Passivos (7–8)</span>
+          <span><span class="dot" style="background:var(--green)"></span>Promotores (9–10)</span>
+        </div>
+      </div>
+      <div class="filters">
+        <input class="filter-input" type="text" id="filterLoja" placeholder="🔍 Buscar loja..." oninput="renderAvalTable()"/>
+        <select class="filter-input" id="filterNPS" onchange="renderAvalTable()">
+          <option value="">Todos os perfis</option>
+          <option value="promoter">Promotores (9–10)</option>
+          <option value="passive">Passivos (7–8)</option>
+          <option value="detractor">Detratores (0–6)</option>
+        </select>
+        <select class="filter-input" id="filterPeriod" onchange="renderAvalTable()">
+          <option value="">Todo período</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </select>
+        <button class="btn-action ml-auto" onclick="exportCSV()">⬇ Exportar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <div class="loading" id="tableLoading">Carregando avaliações...</div>
+        <table id="avalTable" style="display:none">
+          <thead><tr>
+            <th onclick="sortBy('criadoEm')">Data ↕</th>
+            <th onclick="sortBy('lojaNome')">Loja ↕</th>
+            <th onclick="sortBy('score')">Nota ↕</th>
+            <th>Perfil</th><th>Comentário</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none">
+          <span class="icon">📭</span>Nenhuma avaliação encontrada.
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Por Loja -->
+    <div id="tabLojas" style="display:none">
+      <div class="table-wrap">
+        <div class="loading" id="lojasLoading">Calculando...</div>
+        <table id="lojaTable" style="display:none">
+          <thead><tr>
+            <th>Loja</th><th>Avaliações</th><th>Média</th><th>NPS</th>
+            <th>Promotores</th><th>Passivos</th><th>Detratores</th>
+          </tr></thead>
+          <tbody id="lojaBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Links das Lojas -->
+    <div id="tabLinks" style="display:none">
+      <div class="filters">
+        <input class="filter-input" type="text" id="filterLinks" placeholder="🔍 Buscar loja ou cidade..." oninput="renderLinksTable()" style="flex:1;min-width:200px"/>
+        <select class="filter-input" id="filterEstado" onchange="renderLinksTable()">
+          <option value="">Todos os estados</option>
+        </select>
+        <button class="btn-action" onclick="copyAllLinks()">📋 Copiar todos os links</button>
+        <button class="btn-action ml-auto" onclick="exportLinksCSV()">⬇ Exportar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="linksTable">
+          <thead><tr>
+            <th style="width:36px">#</th>
+            <th>Loja</th>
+            <th style="width:64px">UF</th>
+            <th style="width:76px">ID</th>
+            <th>Link NPS</th>
+            <th style="width:150px">Desempenho</th>
+            <th style="width:150px">Ações</th>
+          </tr></thead>
+          <tbody id="linksBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:right" id="linksCount"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, orderBy, query }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ══════════════════════════════════════════
+// 🔧 CONFIGURE SEU FIREBASE AQUI
+const firebaseConfig = {
+  apiKey: "COLE_SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO_ID",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+
+// 🔑 CREDENCIAIS DO ADMIN (altere aqui)
+const ADMIN_USERS = { "admin": "italinhouse2026" };
+
+// 🏪 CADASTRO DAS 68 LOJAS
+const BASE_URL = "https://italinhouse.github.io/italin-nps-avaliacoes/";
+const LOJAS = [
+  {id:"GO001",nome:"Ital'in House - Goiânia - Jardim América",uf:"GO"},
+  {id:"SP002",nome:"Ital'in House - Ribeirão Pires - Centro",uf:"SP"},
+  {id:"SP003",nome:"Ital'in House - Santo André - Parque Marajoara",uf:"SP"},
+  {id:"SP004",nome:"Ital'in House - Guarujá - Pitangueiras",uf:"SP"},
+  {id:"RJ005",nome:"Ital'in House - Rio de Janeiro - Barra da Tijuca",uf:"RJ"},
+  {id:"SP006",nome:"Ital'in House - São Paulo - Campo Limpo",uf:"SP"},
+  {id:"SP007",nome:"Ital'in House - Barretos - Aeroporto",uf:"SP"},
+  {id:"MS008",nome:"Ital'in House - Dourados - Jardim Caramuru",uf:"MS"},
+  {id:"MT009",nome:"Ital'in House - Rondonópolis - Coophalis",uf:"MT"},
+  {id:"MG010",nome:"Ital'in House - Uberlândia - Saraiva",uf:"MG"},
+  {id:"SP011",nome:"Ital'in House - São Paulo - São Mateus",uf:"SP"},
+  {id:"PR012",nome:"Ital'in House - Ponta Grossa - Centro",uf:"PR"},
+  {id:"MS013",nome:"Ital'in House - Campo Grande - Jardim dos Estados",uf:"MS"},
+  {id:"MG014",nome:"Ital'in House - Governador Valadares - Centro",uf:"MG"},
+  {id:"SP015",nome:"Ital'in House - São José dos Campos - Bosque dos Eucaliptos",uf:"SP"},
+  {id:"SP016",nome:"Ital'in House - Piracicaba - Cidade Alta",uf:"SP"},
+  {id:"SP017",nome:"Ital'in House - Olimpia - Patrimônio de São João Batista",uf:"SP"},
+  {id:"SP018",nome:"Ital'in House - São Paulo - Vila Matilde",uf:"SP"},
+  {id:"SP019",nome:"Ital'in House - São Paulo - Jabaquara",uf:"SP"},
+  {id:"MT020",nome:"Ital'in House - Cuiabá - Areão",uf:"MT"},
+  {id:"SP021",nome:"Ital'in House - Barueri - Alphaville",uf:"SP"},
+  {id:"SP022",nome:"Ital'in House - Mogi das Cruzes - Centro",uf:"SP"},
+  {id:"SP023",nome:"Ital'in House - São Paulo - São Miguel",uf:"SP"},
+  {id:"SP024",nome:"Ital'in House - Jacareí - Loteamento Villa Branca",uf:"SP"},
+  {id:"PR025",nome:"Ital'in House - Araucária - Centro",uf:"PR"},
+  {id:"DF026",nome:"Ital'in House - Brasília - Setor Sudoeste",uf:"DF"},
+  {id:"SP027",nome:"Ital'in House - Taubaté - Centro",uf:"SP"},
+  {id:"MG028",nome:"Ital'in House - Ituiutaba - Centro",uf:"MG"},
+  {id:"ES029",nome:"Ital'in House - Vitória - ES",uf:"ES"},
+  {id:"SP030",nome:"Ital'in House - São Paulo - Vila Madalena",uf:"SP"},
+  {id:"SP031",nome:"Ital'in House - Carapicuíba",uf:"SP"},
+  {id:"SP032",nome:"Ital'in House - São Paulo - Taboão da Serra",uf:"SP"},
+  {id:"SP033",nome:"Ital'in House - Araçatuba - Higienópolis",uf:"SP"},
+  {id:"SP034",nome:"Italin House Macarrão Gourmet - Pindamonhangaba",uf:"SP"},
+  {id:"SP035",nome:"Ital'in House - Limeira - SP",uf:"SP"},
+  {id:"SP036",nome:"Ital'in House - Itapevi - Jardim Santa Rita",uf:"SP"},
+  {id:"SC037",nome:"Ital'in House - Joinville - Santo Antônio",uf:"SC"},
+  {id:"MT038",nome:"Ital'in House - Sinop - Setor Residencial Norte",uf:"MT"},
+  {id:"RS039",nome:"Ital'in House - Canoas",uf:"RS"},
+  {id:"SP040",nome:"Ital'in House - Votuporanga - Santa Eliza",uf:"SP"},
+  {id:"SP041",nome:"Ital'in House - Birigui",uf:"SP"},
+  {id:"SP042",nome:"Ital'in House - São Paulo - Rio Claro",uf:"SP"},
+  {id:"AL043",nome:"Ital'in House - Maceió - Pajuçara",uf:"AL"},
+  {id:"PI044",nome:"Ital'in House - Teresina - Ininga",uf:"PI"},
+  {id:"SP045",nome:"Ital'in House - São Bernardo do Campo - Rudge Ramos",uf:"SP"},
+  {id:"SP046",nome:"Ital'in House - Praia Grande",uf:"SP"},
+  {id:"MG047",nome:"Ital'in House - Betim - Inga Alto",uf:"MG"},
+  {id:"RS048",nome:"Ital'in House - Esteio - Centro",uf:"RS"},
+  {id:"SP049",nome:"Ital'in House - São Paulo - Freguesia do Ó",uf:"SP"},
+  {id:"SP050",nome:"Ital'in House - Botucatu - Centro",uf:"SP"},
+  {id:"SP051",nome:"Ital'in House - São Paulo - Vila Mariana",uf:"SP"},
+  {id:"SP052",nome:"Ital'in House - Osasco - Baronesa",uf:"SP"},
+  {id:"SP053",nome:"Ital'in House - Itupeva - Lagoa",uf:"SP"},
+  {id:"SP054",nome:"Ital'in House - São Vicente - Centro",uf:"SP"},
+  {id:"PI055",nome:"Ital'in House - Parnaíba",uf:"PI"},
+  {id:"MG056",nome:"Italin House BH - Buritis",uf:"MG"},
+  {id:"SC057",nome:"Ital'in House - Itajaí - Centro",uf:"SC"},
+  {id:"SP058",nome:"Ital'in House - São Paulo - Anália Franco",uf:"SP"},
+  {id:"SP059",nome:"Ital'in House - Matão - Centro",uf:"SP"},
+  {id:"SP060",nome:"Ital'in House - Fernandópolis - Centro",uf:"SP"},
+  {id:"SP061",nome:"Ital'in House - São Paulo - Mooca",uf:"SP"},
+  {id:"SP062",nome:"Ital'in House - São José do Rio Preto",uf:"SP"},
+  {id:"SP063",nome:"Italin House - Araras",uf:"SP"},
+  {id:"MG064",nome:"Ital'in House - Araxá - Centro",uf:"MG"},
+  {id:"SP065",nome:"Ital'in House - Andradina - Centro",uf:"SP"},
+  {id:"SP066",nome:"Ital'in House - Jundiaí - Jardim São Miguel",uf:"SP"},
+  {id:"RJ067",nome:"Ital'in House - Rio de Janeiro - Copacabana",uf:"RJ"},
+  {id:"SP068",nome:"Ital'in House - Leme - Centro",uf:"SP"},
+];
+// ══════════════════════════════════════════
+
+const makeLink = l => `${BASE_URL}?loja=${encodeURIComponent(l.id)}&nome=${encodeURIComponent(l.nome)}`;
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+let allData=[], sortCol="criadoEm", sortAsc=false;
+
+// Auth
+window.doLogin = function() {
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginError");
+  if(ADMIN_USERS[u]&&ADMIN_USERS[u]===p){ sessionStorage.setItem("italin_admin","ok"); showDashboard(); }
+  else{ err.style.display="block"; document.getElementById("loginPass").value=""; }
+};
+window.doLogout = () => { sessionStorage.removeItem("italin_admin"); location.reload(); };
+if(sessionStorage.getItem("italin_admin")==="ok") showDashboard();
+
+async function showDashboard() {
+  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("dashboard").style.display="block";
+  populateEstadoFilter();
+  renderLinksTable();
+  await loadData();
+}
+
+async function loadData() {
+  try {
+    const snap = await getDocs(query(collection(db,"avaliacoes"),orderBy("criadoEm","desc")));
+    allData = snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateKPIs(); renderAvalTable(); renderLojasTab(); renderLinksTable();
+  } catch(e) {
+    console.error(e);
+    document.getElementById("tableLoading").textContent="Erro ao carregar. Verifique o Firebase.";
+  }
+}
+
+function updateKPIs() {
+  const total=allData.length;
+  const pr=allData.filter(d=>d.score>=9).length;
+  const de=allData.filter(d=>d.score<=6).length;
+  const pa=allData.filter(d=>d.score>=7&&d.score<=8).length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(allData.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const now=Date.now();
+  const hoje=allData.filter(d=>{if(!d.criadoEm)return false;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<86400000;}).length;
+  const lojasAtivas=new Set(allData.map(d=>d.lojaId)).size;
+  document.getElementById("kpiTotal").textContent=total;
+  document.getElementById("kpiNPS").textContent=(nps>0?"+":"")+nps;
+  document.getElementById("kpiMedia").textContent=avg;
+  document.getElementById("kpiHoje").textContent=hoje;
+  document.getElementById("kpiLojas").textContent=lojasAtivas;
+  const dPct=total?(de/total)*100:33, pPct=total?(pa/total)*100:33, prPct=total?(pr/total)*100:34;
+  document.getElementById("barDetrator").style.flex=dPct;
+  document.getElementById("barPassivo").style.flex=pPct;
+  document.getElementById("barPromotor").style.flex=prPct;
+  document.getElementById("barDetrator").textContent=dPct>8?`${Math.round(dPct)}% Det.`:"";
+  document.getElementById("barPassivo").textContent=pPct>8?`${Math.round(pPct)}% Pas.`:"";
+  document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
+}
+
+window.renderAvalTable = function() {
+  const fl=document.getElementById("filterLoja").value.toLowerCase();
+  const fn=document.getElementById("filterNPS").value;
+  const fp=document.getElementById("filterPeriod").value;
+  const now=Date.now();
+  let data=[...allData];
+  if(fl) data=data.filter(d=>(d.lojaNome||d.lojaId||"").toLowerCase().includes(fl));
+  if(fn==="promoter") data=data.filter(d=>d.score>=9);
+  if(fn==="passive")  data=data.filter(d=>d.score>=7&&d.score<=8);
+  if(fn==="detractor")data=data.filter(d=>d.score<=6);
+  if(fp){const days=Number(fp);data=data.filter(d=>{if(!d.criadoEm)return true;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<days*86400000;});}
+  data.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==="criadoEm"){va=va?.toDate?.().getTime()??0;vb=vb?.toDate?.().getTime()??0;}if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;});
+  const tbody=document.getElementById("tableBody");
+  tbody.innerHTML="";
+  document.getElementById("tableLoading").style.display="none";
+  if(!data.length){document.getElementById("avalTable").style.display="none";document.getElementById("emptyState").style.display="block";return;}
+  document.getElementById("avalTable").style.display="table";
+  document.getElementById("emptyState").style.display="none";
+  data.forEach(d=>{
+    const type=d.score>=9?"promoter":d.score>=7?"passive":"detractor";
+    const label=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
+    const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="color:var(--muted);font-size:12px">${date}</td><td><strong>${d.lojaNome||d.lojaId||"—"}</strong></td><td><span class="score-pill ${type}">${d.score}</span></td><td><span class="nps-tag ${type}">${label}</span></td><td><div class="comment-text" title="${d.comment||''}">${d.comment||'<span style="opacity:.4">sem comentário</span>'}</div></td>`;
+    tbody.appendChild(tr);
+  });
+};
+window.sortBy=function(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderAvalTable();};
+
+function renderLojasTab() {
+  const map={};
+  allData.forEach(d=>{const key=d.lojaId||d.lojaNome||"?";const nome=d.lojaNome||d.lojaId||"?";if(!map[key])map[key]={nome,scores:[]};map[key].scores.push(d.score);});
+  const lojas=Object.values(map).map(l=>{
+    const total=l.scores.length,pr=l.scores.filter(s=>s>=9).length,pa=l.scores.filter(s=>s>=7&&s<=8).length,de=l.scores.filter(s=>s<=6).length;
+    return{nome:l.nome,total,pr,pa,de,nps:Math.round(((pr-de)/total)*100),avg:(l.scores.reduce((s,v)=>s+v,0)/total).toFixed(1)};
+  }).sort((a,b)=>b.nps-a.nps);
+  document.getElementById("lojasLoading").style.display="none";
+  document.getElementById("lojaTable").style.display="table";
+  const tbody=document.getElementById("lojaBody");tbody.innerHTML="";
+  lojas.forEach(l=>{
+    const nc=l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><strong>${l.nome}</strong></td><td>${l.total}</td><td>${l.avg}</td><td style="font-weight:600;color:${nc}">${l.nps>0?"+":""}${l.nps}</td><td style="color:var(--green)">${l.pr}</td><td style="color:var(--yellow)">${l.pa}</td><td style="color:var(--red)">${l.de}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function getLojaStats(lojaId) {
+  const rows=allData.filter(d=>d.lojaId===lojaId);
+  if(!rows.length)return null;
+  const total=rows.length,pr=rows.filter(d=>d.score>=9).length,de=rows.filter(d=>d.score<=6).length;
+  return{total,nps:Math.round(((pr-de)/total)*100),avg:(rows.reduce((s,d)=>s+d.score,0)/total).toFixed(1)};
+}
+
+function populateEstadoFilter() {
+  const ufs=[...new Set(LOJAS.map(l=>l.uf))].sort();
+  const sel=document.getElementById("filterEstado");
+  ufs.forEach(uf=>{const o=document.createElement("option");o.value=uf;o.textContent=uf;sel.appendChild(o);});
+}
+
+window.renderLinksTable = function() {
+  const fl=document.getElementById("filterLinks")?.value.toLowerCase()||"";
+  const fe=document.getElementById("filterEstado")?.value||"";
+  let lojas=LOJAS;
+  if(fl)lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl)||l.id.toLowerCase().includes(fl));
+  if(fe)lojas=lojas.filter(l=>l.uf===fe);
+  const tbody=document.getElementById("linksBody");
+  tbody.innerHTML="";
+  lojas.forEach((loja,i)=>{
+    const link=makeLink(loja);
+    const stats=getLojaStats(loja.id);
+    const statsHtml=stats
+      ?`<span class="stats-count">${stats.total} aval.</span> <span class="nps-mini ${stats.nps>=50?"good":stats.nps>=0?"warn":"none"}">${stats.nps>0?"+":""}${stats.nps} NPS</span>`
+      :`<span class="nps-mini none">Sem avaliações</span>`;
+    const msg=encodeURIComponent(`Olá! Avalie sua experiência na ${loja.nome}: ${link}`);
+    const tr=document.createElement("tr");
+    tr.className="link-row";
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><strong style="font-size:13px">${loja.nome}</strong></td>
+      <td><span class="state-badge">${loja.uf}</span></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${loja.id}</td>
+      <td><span class="loja-link-text" title="${link}">${link}</span></td>
+      <td>${statsHtml}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="copy-btn" onclick="copyLink('${link}',this)">📋 Copiar</button>
+        <a class="wa-btn" href="https://wa.me/?text=${msg}" target="_blank">💬 WA</a>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("linksCount").textContent=`Exibindo ${lojas.length} de ${LOJAS.length} lojas`;
+};
+
+window.copyLink=function(link,btn){
+  navigator.clipboard.writeText(link).then(()=>{
+    btn.textContent="✓ Copiado!";btn.classList.add("copied");
+    setTimeout(()=>{btn.textContent="📋 Copiar";btn.classList.remove("copied");},2000);
+  });
+};
+
+window.copyAllLinks=function(){
+  const fl=document.getElementById("filterLinks").value.toLowerCase();
+  const fe=document.getElementById("filterEstado").value;
+  let lojas=LOJAS;
+  if(fl)lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl));
+  if(fe)lojas=lojas.filter(l=>l.uf===fe);
+  const text=lojas.map(l=>`${l.nome}\n${makeLink(l)}`).join("\n\n");
+  navigator.clipboard.writeText(text).then(()=>alert(`${lojas.length} links copiados!`));
+};
+
+window.exportCSV=function(){
+  const rows=[["Data","Loja","ID","Nota","Perfil","Comentário"]];
+  allData.forEach(d=>{
+    const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR"):"";
+    const type=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
+    rows.push([date,d.lojaNome||"",d.lojaId||"",d.score,type,(d.comment||"").replace(/,/g,";")]);
+  });
+  dlCSV(rows,`nps_avaliacoes_${today()}.csv`);
+};
+
+window.exportLinksCSV=function(){
+  const rows=[["#","Loja","UF","ID","Link NPS","Avaliações","NPS","Média"]];
+  LOJAS.forEach((l,i)=>{
+    const s=getLojaStats(l.id);
+    rows.push([i+1,l.nome,l.uf,l.id,makeLink(l),s?.total||0,s?.nps??"",s?.avg||""]);
+  });
+  dlCSV(rows,`nps_links_lojas_${today()}.csv`);
+};
+
+function dlCSV(rows,filename){
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  Object.assign(document.createElement("a"),{href:"data:text/csv;charset=utf-8,"+encodeURIComponent("\uFEFF"+csv),download:filename}).click();
+}
+function today(){return new Date().toISOString().slice(0,10);}
+
+window.switchTab=function(tab,el){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tabAvaliacoes").style.display=tab==="avaliacoes"?"block":"none";
+  document.getElementById("tabLojas").style.display=tab==="lojas"?"block":"none";
+  document.getElementById("tabLinks").style.display=tab==="links"?"block":"none";
+};
+</script>
+</body>
+</html>
