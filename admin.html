@@ -164,7 +164,7 @@
     <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House"/>
     <h2>Painel Administrativo</h2>
     <p>Sistema de avaliações NPS</p>
-    <input class="login-input" type="text" id="loginUser" placeholder="Usuário" autocomplete="username"/>
+    <input class="login-input" type="email" id="loginUser" placeholder="E-mail" autocomplete="email"/>
     <input class="login-input" type="password" id="loginPass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="loginError">Usuário ou senha incorretos.</div>
@@ -303,8 +303,12 @@ const firebaseConfig = {
   appId: "SEU_APP_ID"
 };
 
-// 🔑 CREDENCIAIS DO ADMIN (altere aqui)
-const ADMIN_USERS = { "admin": "italinhouse2026" };
+// 🔑 CREDENCIAIS DO ADMIN
+const ADMIN_USERS = {
+  "dante@italinhouse.com":   "Italinhouse@2026",
+  "lucasprimo@italinhouse.com": "Italinhouse@2026",
+  "wesleymonteiro@italinhouse.com": "Italinhouse@2026",
+};
 
 // 🏪 CADASTRO DAS 68 LOJAS
 const BASE_URL = "https://italinhouse.github.io/italin-nps-avaliacoes/";
