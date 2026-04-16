@@ -246,15 +246,55 @@
 
     <!-- TAB: Por Loja -->
     <div id="tabLojas" style="display:none">
+      <div class="filters">
+        <input class="filter-input" type="text" id="filterLojaTab" placeholder="🔍 Buscar loja..." oninput="renderLojasTab()" style="flex:1;min-width:200px"/>
+        <select class="filter-input" id="filterUFTab" onchange="renderLojasTab()">
+          <option value="">Todos os estados</option>
+          <option value="AL">AL</option>
+          <option value="DF">DF</option>
+          <option value="ES">ES</option>
+          <option value="GO">GO</option>
+          <option value="MG">MG</option>
+          <option value="MS">MS</option>
+          <option value="MT">MT</option>
+          <option value="PI">PI</option>
+          <option value="PR">PR</option>
+          <option value="RJ">RJ</option>
+          <option value="RS">RS</option>
+          <option value="SC">SC</option>
+          <option value="SP">SP</option>
+        </select>
+        <select class="filter-input" id="filterNPSTab" onchange="renderLojasTab()">
+          <option value="">Todos os NPS</option>
+          <option value="bom">Bom (NPS ≥ 50)</option>
+          <option value="medio">Médio (0 a 49)</option>
+          <option value="ruim">Ruim (NPS negativo)</option>
+          <option value="sem">Sem avaliações</option>
+        </select>
+        <select class="filter-input" id="filterOrdemTab" onchange="renderLojasTab()">
+          <option value="nps">Ordenar por NPS</option>
+          <option value="nome">Ordenar por nome</option>
+          <option value="total">Ordenar por avaliações</option>
+          <option value="media">Ordenar por média</option>
+        </select>
+        <div style="font-size:12px;color:var(--muted);padding:9px 0;white-space:nowrap" id="lojaCount"></div>
+      </div>
       <div class="table-wrap">
         <div class="loading" id="lojasLoading">Calculando...</div>
         <table id="lojaTable" style="display:none">
           <thead><tr>
-            <th>Loja</th><th>Avaliações</th><th>Média</th><th>NPS</th>
+            <th onclick="sortLojas('nome')">Loja ↕</th>
+            <th style="width:60px">UF</th>
+            <th onclick="sortLojas('total')">Avaliações ↕</th>
+            <th onclick="sortLojas('avg')">Média ↕</th>
+            <th onclick="sortLojas('nps')">NPS ↕</th>
             <th>Promotores</th><th>Passivos</th><th>Detratores</th>
           </tr></thead>
           <tbody id="lojaBody"></tbody>
         </table>
+        <div class="empty-state" id="lojaEmpty" style="display:none">
+          <span class="icon">🏪</span>Nenhuma loja encontrada com esses filtros.
+        </div>
       </div>
     </div>
 
@@ -473,23 +513,77 @@ window.renderAvalTable = function() {
 };
 window.sortBy=function(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderAvalTable();};
 
-function renderLojasTab() {
+let lojasSortCol="nps", lojasSortAsc=false;
+
+function buildLojasData() {
   const map={};
-  allData.forEach(d=>{const key=d.lojaId||d.lojaNome||"?";const nome=d.lojaNome||d.lojaId||"?";if(!map[key])map[key]={nome,scores:[]};map[key].scores.push(d.score);});
-  const lojas=Object.values(map).map(l=>{
-    const total=l.scores.length,pr=l.scores.filter(s=>s>=9).length,pa=l.scores.filter(s=>s>=7&&s<=8).length,de=l.scores.filter(s=>s<=6).length;
-    return{nome:l.nome,total,pr,pa,de,nps:Math.round(((pr-de)/total)*100),avg:(l.scores.reduce((s,v)=>s+v,0)/total).toFixed(1)};
-  }).sort((a,b)=>b.nps-a.nps);
-  document.getElementById("lojasLoading").style.display="none";
-  document.getElementById("lojaTable").style.display="table";
-  const tbody=document.getElementById("lojaBody");tbody.innerHTML="";
-  lojas.forEach(l=>{
-    const nc=l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td><strong>${l.nome}</strong></td><td>${l.total}</td><td>${l.avg}</td><td style="font-weight:600;color:${nc}">${l.nps>0?"+":""}${l.nps}</td><td style="color:var(--green)">${l.pr}</td><td style="color:var(--yellow)">${l.pa}</td><td style="color:var(--red)">${l.de}</td>`;
-    tbody.appendChild(tr);
+  allData.forEach(d=>{
+    const key=d.lojaId||d.lojaNome||"?";
+    const nome=d.lojaNome||d.lojaId||"?";
+    const lojaObj=LOJAS.find(l=>l.id===d.lojaId)||{uf:"?"};
+    if(!map[key])map[key]={nome,uf:lojaObj.uf,scores:[]};
+    map[key].scores.push(d.score);
+  });
+  LOJAS.forEach(l=>{ if(!map[l.id])map[l.id]={nome:l.nome,uf:l.uf,scores:[]}; });
+  return Object.values(map).map(l=>{
+    const total=l.scores.length;
+    if(!total)return{nome:l.nome,uf:l.uf,total:0,pr:0,pa:0,de:0,nps:null,avg:null};
+    const pr=l.scores.filter(s=>s>=9).length,pa=l.scores.filter(s=>s>=7&&s<=8).length,de=l.scores.filter(s=>s<=6).length;
+    return{nome:l.nome,uf:l.uf,total,pr,pa,de,nps:Math.round(((pr-de)/total)*100),avg:(l.scores.reduce((s,v)=>s+v,0)/total).toFixed(1)};
   });
 }
+
+window.renderLojasTab = function() {
+  const fl=document.getElementById("filterLojaTab")?.value.toLowerCase()||"";
+  const fuf=document.getElementById("filterUFTab")?.value||"";
+  const fnps=document.getElementById("filterNPSTab")?.value||"";
+  let lojas=buildLojasData();
+  if(fl) lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl));
+  if(fuf) lojas=lojas.filter(l=>l.uf===fuf);
+  if(fnps==="bom")  lojas=lojas.filter(l=>l.nps!==null&&l.nps>=50);
+  if(fnps==="medio")lojas=lojas.filter(l=>l.nps!==null&&l.nps>=0&&l.nps<50);
+  if(fnps==="ruim") lojas=lojas.filter(l=>l.nps!==null&&l.nps<0);
+  if(fnps==="sem")  lojas=lojas.filter(l=>l.total===0);
+  lojas.sort((a,b)=>{
+    let va=a[lojasSortCol]??-9999, vb=b[lojasSortCol]??-9999;
+    if(lojasSortCol==="nome"){va=a.nome;vb=b.nome;}
+    if(va<vb)return lojasSortAsc?-1:1;
+    if(va>vb)return lojasSortAsc?1:-1;
+    return 0;
+  });
+  document.getElementById("lojasLoading").style.display="none";
+  document.getElementById("lojaEmpty").style.display="none";
+  if(!lojas.length){
+    document.getElementById("lojaTable").style.display="none";
+    document.getElementById("lojaEmpty").style.display="block";
+    document.getElementById("lojaCount").textContent="";
+    return;
+  }
+  document.getElementById("lojaTable").style.display="table";
+  document.getElementById("lojaCount").textContent=`${lojas.length} loja${lojas.length!==1?"s":""} encontrada${lojas.length!==1?"s":""}`;
+  const tbody=document.getElementById("lojaBody");tbody.innerHTML="";
+  lojas.forEach(l=>{
+    const nc=l.nps===null?"var(--muted)":l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
+    const npsText=l.nps===null?'<span style="opacity:.4">—</span>':(l.nps>0?"+":"")+l.nps;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td><strong>${l.nome}</strong></td>
+      <td><span class="state-badge">${l.uf}</span></td>
+      <td>${l.total||'<span style="opacity:.4">0</span>'}</td>
+      <td>${l.avg||'<span style="opacity:.4">—</span>'}</td>
+      <td style="font-weight:600;color:${nc}">${npsText}</td>
+      <td style="color:var(--green)">${l.pr||0}</td>
+      <td style="color:var(--yellow)">${l.pa||0}</td>
+      <td style="color:var(--red)">${l.de||0}</td>`;
+    tbody.appendChild(tr);
+  });
+};
+
+window.sortLojas=function(col){
+  if(lojasSortCol===col)lojasSortAsc=!lojasSortAsc;
+  else{lojasSortCol=col;lojasSortAsc=false;}
+  renderLojasTab();
+};
 
 function getLojaStats(lojaId) {
   const rows=allData.filter(d=>d.lojaId===lojaId);
