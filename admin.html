@@ -225,7 +225,10 @@
           <option value="30">Últimos 30 dias</option>
           <option value="90">Últimos 90 dias</option>
         </select>
-        <button class="btn-action ml-auto" onclick="exportCSV()">⬇ Exportar CSV</button>
+        <div style="display:flex;gap:6px;margin-left:auto">
+          <button class="btn-action" onclick="exportCSV()" title="Exportar dados filtrados em CSV">⬇ CSV</button>
+          <button class="btn-action" onclick="exportPDF()" title="Exportar relatório em PDF" style="background:#922B21">🖨 PDF</button>
+        </div>
       </div>
       <div class="table-wrap">
         <div class="loading" id="tableLoading">Carregando avaliações...</div>
@@ -329,7 +332,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, orderBy, query }
+import { getFirestore, collection, query, orderBy, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ══════════════════════════════════════════
@@ -446,18 +449,20 @@ async function showDashboard() {
   document.getElementById("dashboard").style.display="block";
   populateEstadoFilter();
   renderLinksTable();
-  await loadData();
+  loadDataRealtime();
 }
 
-async function loadData() {
-  try {
-    const snap = await getDocs(query(collection(db,"avaliacoes"),orderBy("criadoEm","desc")));
+// FIX 1: onSnapshot - carregamento em tempo real sem precisar entrar/sair
+function loadDataRealtime() {
+  const q = query(collection(db,"avaliacoes"), orderBy("criadoEm","desc"));
+  onSnapshot(q, snap => {
     allData = snap.docs.map(d=>({id:d.id,...d.data()}));
     updateKPIs(); renderAvalTable(); renderLojasTab(); renderLinksTable();
-  } catch(e) {
+    document.getElementById("tableLoading").style.display="none";
+  }, e => {
     console.error(e);
     document.getElementById("tableLoading").textContent="Erro ao carregar. Verifique o Firebase.";
-  }
+  });
 }
 
 function updateKPIs() {
@@ -484,6 +489,7 @@ function updateKPIs() {
   document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
 }
 
+// FIX 2: renderAvalTable - KPIs refletem o filtro aplicado
 window.renderAvalTable = function() {
   const fl=document.getElementById("filterLoja").value.toLowerCase();
   const fn=document.getElementById("filterNPS").value;
@@ -495,6 +501,9 @@ window.renderAvalTable = function() {
   if(fn==="passive")  data=data.filter(d=>d.score>=7&&d.score<=8);
   if(fn==="detractor")data=data.filter(d=>d.score<=6);
   if(fp){const days=Number(fp);data=data.filter(d=>{if(!d.criadoEm)return true;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<days*86400000;});}
+  // Atualiza KPIs com dados filtrados
+  if(fl || fn || fp) updateKPIsFiltered(data);
+  else updateKPIs();
   data.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==="criadoEm"){va=va?.toDate?.().getTime()??0;vb=vb?.toDate?.().getTime()??0;}if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;});
   const tbody=document.getElementById("tableBody");
   tbody.innerHTML="";
@@ -510,8 +519,34 @@ window.renderAvalTable = function() {
     tr.innerHTML=`<td style="color:var(--muted);font-size:12px">${date}</td><td><strong>${d.lojaNome||d.lojaId||"—"}</strong></td><td><span class="score-pill ${type}">${d.score}</span></td><td><span class="nps-tag ${type}">${label}</span></td><td><div class="comment-text" title="${d.comment||''}">${d.comment||'<span style="opacity:.4">sem comentário</span>'}</div></td>`;
     tbody.appendChild(tr);
   });
+  // Salva dados filtrados para exportação
+  window._dadosFiltrados = data;
 };
 window.sortBy=function(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderAvalTable();};
+
+function updateKPIsFiltered(data) {
+  const total=data.length;
+  const pr=data.filter(d=>d.score>=9).length;
+  const de=data.filter(d=>d.score<=6).length;
+  const pa=data.filter(d=>d.score>=7&&d.score<=8).length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(data.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const now=Date.now();
+  const hoje=data.filter(d=>{if(!d.criadoEm)return false;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<86400000;}).length;
+  const lojasAtivas=new Set(data.map(d=>d.lojaId)).size;
+  document.getElementById("kpiTotal").textContent=total;
+  document.getElementById("kpiNPS").textContent=(nps>0?"+":"")+nps;
+  document.getElementById("kpiMedia").textContent=avg;
+  document.getElementById("kpiHoje").textContent=hoje;
+  document.getElementById("kpiLojas").textContent=lojasAtivas;
+  const dPct=total?(de/total)*100:33,pPct=total?(pa/total)*100:33,prPct=total?(pr/total)*100:34;
+  document.getElementById("barDetrator").style.flex=dPct;
+  document.getElementById("barPassivo").style.flex=pPct;
+  document.getElementById("barPromotor").style.flex=prPct;
+  document.getElementById("barDetrator").textContent=dPct>8?`${Math.round(dPct)}% Det.`:"";
+  document.getElementById("barPassivo").textContent=pPct>8?`${Math.round(pPct)}% Pas.`:"";
+  document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
+}
 
 let lojasSortCol="nps", lojasSortAsc=false;
 
@@ -623,7 +658,7 @@ window.renderLinksTable = function() {
       <td><span class="loja-link-text" title="${link}">${link}</span></td>
       <td>${statsHtml}</td>
       <td><div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="copy-btn" onclick="copyLink('${link}',this)">📋 Copiar</button>
+        <button class="copy-btn" data-link="${link}" onclick="copyLink(this.dataset.link,this)">📋 Copiar</button>
         <a class="wa-btn" href="https://wa.me/?text=${msg}" target="_blank">💬 WA</a>
       </div></td>`;
     tbody.appendChild(tr);
@@ -648,14 +683,66 @@ window.copyAllLinks=function(){
   navigator.clipboard.writeText(text).then(()=>alert(`${lojas.length} links copiados!`));
 };
 
+// FIX 4: exportCSV usa dados filtrados quando há filtro ativo
 window.exportCSV=function(){
+  const data = window._dadosFiltrados || allData;
   const rows=[["Data","Loja","ID","Nota","Perfil","Comentário"]];
-  allData.forEach(d=>{
+  data.forEach(d=>{
     const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR"):"";
     const type=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
     rows.push([date,d.lojaNome||"",d.lojaId||"",d.score,type,(d.comment||"").replace(/,/g,";")]);
   });
   dlCSV(rows,`nps_avaliacoes_${today()}.csv`);
+};
+
+window.exportPDF=function(){
+  const data = window._dadosFiltrados || allData;
+  if(!data.length){ alert("Nenhuma avaliação para exportar."); return; }
+  const fl = document.getElementById("filterLoja").value || "Todas as lojas";
+  const titulo = fl !== "Todas as lojas" ? `Relatório NPS — ${fl}` : "Relatório NPS — Ital'in House";
+  const pr=data.filter(d=>d.score>=9).length;
+  const de=data.filter(d=>d.score<=6).length;
+  const pa=data.filter(d=>d.score>=7&&d.score<=8).length;
+  const total=data.length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(data.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const rows=data.map(d=>{
+    const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+    const type=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
+    return `<tr><td>${date}</td><td>${d.lojaNome||d.lojaId||"—"}</td><td style="text-align:center;font-weight:bold">${d.score}</td><td>${type}</td><td>${d.comment||""}</td></tr>`;
+  }).join("");
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>${titulo}</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:32px;color:#1A0A05}
+    h1{color:#C0392B;font-size:20px;margin-bottom:4px}
+    .sub{color:#7A5A50;font-size:12px;margin-bottom:24px}
+    .kpis{display:flex;gap:16px;margin-bottom:24px}
+    .kpi{background:#FDF6EE;border:1px solid #E8D5C4;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px}
+    .kpi-v{font-size:28px;font-weight:bold;color:#C0392B}
+    .kpi-l{font-size:11px;color:#7A5A50;text-transform:uppercase;letter-spacing:.05em}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th{background:#C0392B;color:#FFF;padding:8px 10px;text-align:left}
+    td{padding:7px 10px;border-bottom:1px solid #F2E8DF}
+    tr:nth-child(even) td{background:#FDF8F3}
+    @media print{body{margin:16px}.kpis{flex-wrap:wrap}}
+  </style></head><body>
+  <h1>🍝 ${titulo}</h1>
+  <div class="sub">Gerado em ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})} · ${total} avaliação${total!==1?"ões":""}</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-v">${total}</div><div class="kpi-l">Total</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:${nps>=50?"#27AE60":nps>=0?"#F39C12":"#C0392B"}">${nps>0?"+":""}${nps}</div><div class="kpi-l">NPS</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:#27AE60">${avg}</div><div class="kpi-l">Média</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:#27AE60">${pr}</div><div class="kpi-l">Promotores</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:#F39C12">${pa}</div><div class="kpi-l">Passivos</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:#C0392B">${de}</div><div class="kpi-l">Detratores</div></div>
+  </div>
+  <table><thead><tr><th>Data</th><th>Loja</th><th>Nota</th><th>Perfil</th><th>Comentário</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <script>window.onload=()=>{window.print()}<\/script>
+  </body></html>`;
+  const w=window.open("","_blank");
+  w.document.write(html);
+  w.document.close();
 };
 
 window.exportLinksCSV=function(){

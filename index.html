@@ -8,324 +8,123 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --red: #C0392B;
-      --red-dark: #922B21;
-      --red-light: #F1948A;
-      --cream: #FDF6EE;
-      --gold: #C9A84C;
-      --dark: #1A0A05;
-      --text: #3D1F15;
-      --muted: #7A5A50;
-      --border: #E8D5C4;
-      --white: #FFFFFF;
-      --radius: 16px;
+      --red: #C0392B; --red-dark: #922B21; --red-light: #F1948A;
+      --cream: #FDF6EE; --gold: #C9A84C; --dark: #1A0A05;
+      --text: #3D1F15; --muted: #7A5A50; --border: #E8D5C4;
+      --white: #FFFFFF; --radius: 16px;
     }
-
-    html, body {
-      height: 100%;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--cream);
-      color: var(--text);
-    }
-
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); }
     body {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background-image:
-        radial-gradient(ellipse at 10% 20%, rgba(192,57,43,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse at 90% 80%, rgba(201,168,76,0.06) 0%, transparent 50%);
+      min-height: 100vh; display: flex; flex-direction: column;
+      background-image: radial-gradient(ellipse at 10% 20%, rgba(192,57,43,0.07) 0%, transparent 60%),
+                        radial-gradient(ellipse at 90% 80%, rgba(201,168,76,0.06) 0%, transparent 50%);
     }
-
-    /* ── Header ── */
-    header {
-      text-align: center;
-      padding: 0;
-    }
+    /* Header */
+    header { text-align: center; padding: 0; }
     .header-bar {
-      background: var(--red);
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: var(--red); padding: 18px 24px;
+      display: flex; align-items: center; justify-content: center;
     }
-    header img {
-      height: 52px;
-      object-fit: contain;
-      filter: brightness(0) invert(1);
-    }
-
-    /* ── Main card ── */
-    main {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 16px 48px;
-    }
-
+    header img { height: 52px; object-fit: contain; filter: brightness(0) invert(1); }
+    /* Main */
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 16px 48px; }
     .card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: 0 4px 40px rgba(26,10,5,0.10);
-      max-width: 560px;
-      width: 100%;
-      padding: 48px 40px;
-      border: 1px solid var(--border);
-      animation: cardIn 0.5s ease both;
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: 0 4px 40px rgba(26,10,5,0.10); max-width: 560px; width: 100%;
+      padding: 48px 40px; border: 1px solid var(--border); animation: cardIn 0.5s ease both;
     }
-
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
+    @keyframes cardIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
     .store-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #FEF3E2;
-      border: 1px solid #F0C98A;
-      color: #7A5010;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 5px 12px;
-      border-radius: 40px;
-      margin-bottom: 22px;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #FEF3E2; border: 1px solid #F0C98A; color: #7A5010;
+      font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 5px 12px; border-radius: 40px; margin-bottom: 22px;
     }
     .store-badge::before { content: "📍"; font-size: 13px; }
-
-    .card h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 26px;
-      line-height: 1.3;
-      color: var(--dark);
-      margin-bottom: 10px;
-    }
+    .card h1 { font-family: 'Playfair Display', serif; font-size: 26px; line-height: 1.3; color: var(--dark); margin-bottom: 10px; }
     .card h1 em { color: var(--red); font-style: italic; }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 300;
-      margin-bottom: 36px;
-      line-height: 1.6;
-    }
-
-    /* ── NPS Slider ── */
-    .rating-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 14px;
-      letter-spacing: 0.02em;
-    }
-
-    .slider-wrapper {
-      position: relative;
-      margin-bottom: 12px;
-    }
-
+    .subtitle { color: var(--muted); font-size: 14px; font-weight: 300; margin-bottom: 36px; line-height: 1.6; }
+    .rating-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 14px; letter-spacing: 0.02em; }
+    .slider-wrapper { position: relative; margin-bottom: 12px; }
     input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 8px;
-      border-radius: 8px;
-      background: linear-gradient(90deg, #C0392B 0%, #F39C12 50%, #27AE60 100%);
-      outline: none;
-      cursor: pointer;
+      -webkit-appearance: none; appearance: none; width: 100%; height: 8px;
+      border-radius: 8px; background: linear-gradient(90deg, #C0392B 0%, #F39C12 50%, #27AE60 100%);
+      outline: none; cursor: pointer;
     }
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--white);
-      border: 3px solid var(--red);
-      box-shadow: 0 2px 10px rgba(192,57,43,0.3);
-      cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s;
+      -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%;
+      background: var(--white); border: 3px solid var(--red);
+      box-shadow: 0 2px 10px rgba(192,57,43,0.3); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s;
     }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-    }
-
-    .slider-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* ── Score Display ── */
-    .score-display {
-      text-align: center;
-      margin: 20px 0 28px;
-    }
-    .score-number {
-      font-family: 'Playfair Display', serif;
-      font-size: 64px;
-      font-weight: 700;
-      line-height: 1;
-      color: var(--red);
-      transition: color 0.3s ease;
-    }
-    .score-emoji {
-      font-size: 28px;
-      margin-top: 6px;
-      display: block;
-      transition: all 0.2s ease;
-    }
-    .score-label {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    /* ── Textarea ── */
-    .textarea-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 8px;
-      display: block;
-    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    .slider-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .score-display { text-align: center; margin: 20px 0 28px; }
+    .score-number { font-family: 'Playfair Display', serif; font-size: 64px; font-weight: 700; line-height: 1; color: var(--red); transition: color 0.3s ease; }
+    .score-emoji { font-size: 28px; margin-top: 6px; display: block; transition: all 0.2s ease; }
+    .score-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .textarea-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; display: block; }
     textarea {
-      width: 100%;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      color: var(--text);
-      resize: vertical;
-      min-height: 100px;
-      transition: border-color 0.2s;
-      background: #FDFAF7;
-      outline: none;
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
+      resize: vertical; min-height: 100px; transition: border-color 0.2s; background: #FDFAF7; outline: none;
     }
     textarea:focus { border-color: var(--red); }
     textarea::placeholder { color: #C4A99A; }
-
-    /* ── Submit Button ── */
     .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 16px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 16px;
       background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
-      color: var(--white);
-      border: none;
-      border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      margin-top: 24px;
-      letter-spacing: 0.02em;
-      transition: opacity 0.2s, transform 0.15s;
-      box-shadow: 0 4px 20px rgba(192,57,43,0.35);
+      color: var(--white); border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+      cursor: pointer; margin-top: 24px; letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.15s; box-shadow: 0 4px 20px rgba(192,57,43,0.35);
     }
     .btn:hover { opacity: 0.92; transform: translateY(-1px); }
     .btn:active { transform: translateY(0); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-
-    /* ── Success State ── */
-    .success {
-      text-align: center;
-      animation: cardIn 0.5s ease both;
-    }
-    .success-icon {
-      font-size: 56px;
-      display: block;
-      margin-bottom: 16px;
-    }
-    .success h2 {
-      font-family: 'Playfair Display', serif;
-      font-size: 26px;
-      color: var(--dark);
-      margin-bottom: 12px;
-    }
-    .success p {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.7;
-    }
+    /* Success */
+    .success { text-align: center; animation: cardIn 0.5s ease both; }
+    .success-icon { font-size: 56px; display: block; margin-bottom: 16px; }
+    .success h2 { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--dark); margin-bottom: 12px; }
+    .success p { color: var(--muted); font-size: 14px; line-height: 1.7; }
     .success-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #EAF7EF;
-      border: 1px solid #A3D9B5;
-      color: #1E7A40;
-      font-size: 12px;
-      font-weight: 500;
-      padding: 6px 14px;
-      border-radius: 40px;
-      margin-top: 20px;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #EAF7EF; border: 1px solid #A3D9B5; color: #1E7A40;
+      font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 40px; margin-top: 20px;
     }
-
-    /* ── Error ── */
+    /* Cupom box */
+    .cupom-box {
+      margin-top: 28px; background: linear-gradient(135deg, #FFF8F0, #FFF3E6);
+      border: 2px dashed var(--gold); border-radius: 14px; padding: 20px 24px; text-align: center;
+    }
+    .cupom-box .cupom-title { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .cupom-box .cupom-desc { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 14px; }
+    .cupom-code {
+      display: inline-block; background: var(--red); color: #FFF;
+      font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 3px;
+      padding: 10px 24px; border-radius: 8px;
+    }
+    .cupom-sub { font-size: 11px; color: var(--muted); margin-top: 10px; }
     .error-msg {
-      display: none;
-      background: #FEF0EE;
-      border: 1px solid #F5C6C0;
-      color: #922B21;
-      font-size: 13px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      margin-top: 12px;
+      display: none; background: #FEF0EE; border: 1px solid #F5C6C0;
+      color: #922B21; font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-top: 12px;
     }
-
-    /* ── Already voted ── */
-    .already-voted {
-      text-align: center;
-    }
-    .already-voted .icon { font-size: 42px; margin-bottom: 14px; display: block; }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 20px;
-      font-size: 11px;
-      color: var(--muted);
-      opacity: 0.7;
-    }
-    footer a { color: inherit; }
-
-    @media (max-width: 480px) {
-      .card { padding: 32px 22px; }
-      .card h1 { font-size: 22px; }
-      .score-number { font-size: 52px; }
-    }
+    footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); opacity: 0.7; }
+    @media (max-width: 480px) { .card { padding: 32px 22px; } .card h1 { font-size: 22px; } .score-number { font-size: 52px; } }
   </style>
 </head>
 <body>
-
   <header>
     <div class="header-bar">
       <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House" />
     </div>
   </header>
-
   <main>
     <div class="card" id="formCard">
-
-      <!-- Store badge -->
       <div class="store-badge" id="storeBadge">Carregando loja...</div>
-
       <h1>Como foi sua <em>experiência</em> com a Ital'in House?</h1>
       <p class="subtitle">Sua opinião nos ajuda a servir ainda melhor. Leva menos de 1 minuto! 🍝</p>
-
-      <!-- Rating -->
       <div class="rating-label">Qual nota você dá para sua experiência?</div>
       <div class="slider-wrapper">
         <input type="range" min="0" max="10" value="8" id="npsSlider" />
@@ -334,39 +133,29 @@
         <span>😞 Não recomendaria</span>
         <span>😍 Recomendaria muito</span>
       </div>
-
       <div class="score-display">
         <div class="score-number" id="scoreNum">8</div>
         <span class="score-emoji" id="scoreEmoji">😊</span>
         <div class="score-label" id="scoreLabel">Bom</div>
       </div>
-
-      <!-- Comment -->
       <label class="textarea-label" for="comment">Conta mais sobre sua visita</label>
       <textarea id="comment" placeholder="O que você mais gostou? Tem algo que podemos melhorar? (opcional)" maxlength="500"></textarea>
-
       <button class="btn" id="submitBtn" onclick="submitNPS()">
-        <span>Enviar Avaliação</span>
-        <span>🍝</span>
+        <span>Enviar Avaliação</span><span>🍝</span>
       </button>
-
       <div class="error-msg" id="errorMsg">Algo deu errado. Por favor, tente novamente.</div>
     </div>
   </main>
-
   <footer>
     Ital'in House © 2026 — Maior Franquia de Comida Italiana do Brasil<br>
     Seus dados são tratados com segurança e privacidade.
   </footer>
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp }
+    import { getFirestore, collection, addDoc, serverTimestamp }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // ══════════════════════════════════════════
-    // 🔧 CONFIGURE SEU FIREBASE AQUI
     const firebaseConfig = {
       apiKey: "AIzaSyDDRGW15EIqQiNLJA2SDGn7g9_HzP_2x_I",
       authDomain: "italin-nps.firebaseapp.com",
@@ -375,97 +164,70 @@
       messagingSenderId: "1027763835623",
       appId: "1:1027763835623:web:90bcaac645153985f08842"
     };
-    // ══════════════════════════════════════════
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ── Parse URL params ──
-    const params   = new URLSearchParams(window.location.search);
-    const lojaId   = params.get("loja")  || "";
-    const lojaNome = params.get("nome")  || lojaId || "Loja";
-    const clienteId = params.get("c")   || "";  // optional unique customer token
+    const params    = new URLSearchParams(window.location.search);
+    const lojaId    = params.get("loja") || "";
+    const lojaNome  = params.get("nome") || lojaId || "Loja";
+    const clienteId = params.get("c")    || "";
 
-    // ── Update UI with store info ──
     document.getElementById("storeBadge").textContent = lojaNome;
     document.title = `Avalie a ${lojaNome} — Ital'in House`;
 
     if (!lojaId) {
-      // No store param — show generic message
       document.getElementById("formCard").innerHTML = `
-        <div class="already-voted">
-          <span class="icon">⚠️</span>
+        <div style="text-align:center">
+          <span style="font-size:42px;display:block;margin-bottom:14px">⚠️</span>
           <h2 style="font-family:'Playfair Display',serif;margin-bottom:10px">Link inválido</h2>
           <p style="color:var(--muted);font-size:14px">Este link de avaliação parece estar incompleto.<br>Solicite um novo link à loja.</p>
         </div>`;
     }
 
-    // ── Check if already voted (by clienteId or localStorage) ──
     const storageKey = `italin_voted_${lojaId}_${clienteId}`;
-    if (clienteId && localStorage.getItem(storageKey)) {
-      showAlreadyVoted();
-    }
+    if (clienteId && localStorage.getItem(storageKey)) showAlreadyVoted();
 
-    // ── Slider logic ──
-    const slider = document.getElementById("npsSlider");
-    const scoreNum = document.getElementById("scoreNum");
-    const scoreEmoji = document.getElementById("scoreEmoji");
-    const scoreLabel = document.getElementById("scoreLabel");
+    const slider    = document.getElementById("npsSlider");
+    const scoreNum  = document.getElementById("scoreNum");
+    const scoreEmoji= document.getElementById("scoreEmoji");
+    const scoreLabel= document.getElementById("scoreLabel");
 
     const emojiMap = {
-      0:  ["😭","Muito ruim"],
-      1:  ["😖","Ruim"],
-      2:  ["😞","Ruim"],
-      3:  ["😕","Razoável"],
-      4:  ["😐","Regular"],
-      5:  ["🙂","Ok"],
-      6:  ["😊","Bom"],
-      7:  ["😊","Bom"],
-      8:  ["😄","Ótimo"],
-      9:  ["🤩","Excelente"],
-      10: ["😍","Perfeito!"],
+      0:["😭","Muito ruim"],1:["😖","Ruim"],2:["😞","Ruim"],3:["😕","Razoável"],
+      4:["😐","Regular"],5:["🙂","Ok"],6:["😊","Bom"],7:["😊","Bom"],
+      8:["😄","Ótimo"],9:["🤩","Excelente"],10:["😍","Perfeito!"]
     };
 
     function updateSlider(v) {
       const [emoji, label] = emojiMap[v];
-      scoreNum.textContent  = v;
+      scoreNum.textContent   = v;
       scoreEmoji.textContent = emoji;
       scoreLabel.textContent = label;
-      const pct = (v / 10) * 100;
-      const color = v <= 3 ? "#C0392B" : v <= 6 ? "#F39C12" : "#27AE60";
-      scoreNum.style.color = color;
+      scoreNum.style.color   = v<=3?"#C0392B":v<=6?"#F39C12":"#27AE60";
     }
-
-    slider.addEventListener("input", () => updateSlider(Number(slider.value)));
+    slider.addEventListener("input", ()=>updateSlider(Number(slider.value)));
     updateSlider(8);
 
-    // ── Submit ──
     window.submitNPS = async function() {
       const score   = Number(slider.value);
       const comment = document.getElementById("comment").value.trim();
       const btn     = document.getElementById("submitBtn");
       const errDiv  = document.getElementById("errorMsg");
-
       if (!lojaId) return;
-
       btn.disabled = true;
       btn.innerHTML = `<span>Enviando...</span>`;
       errDiv.style.display = "none";
-
       try {
         await addDoc(collection(db, "avaliacoes"), {
-          lojaId,
-          lojaNome,
+          lojaId, lojaNome,
           clienteId: clienteId || null,
           score,
           comment: comment || null,
           criadoEm: serverTimestamp(),
           respondido: false,
         });
-
-        // Mark as voted
         if (clienteId) localStorage.setItem(storageKey, "1");
-
         showSuccess(score);
       } catch (e) {
         console.error(e);
@@ -476,7 +238,6 @@
     };
 
     function showSuccess(score) {
-      const [emoji] = emojiMap[score];
       document.getElementById("formCard").innerHTML = `
         <div class="success">
           <span class="success-icon">🫶</span>
@@ -484,17 +245,25 @@
           <p>Sua avaliação foi registrada com sucesso.<br>
           Ela é essencial para continuarmos entregando a melhor experiência italiana do Brasil!</p>
           <div class="success-tag">✓ Resposta enviada</div>
+          <div class="cupom-box">
+            <div class="cupom-title">🎁 Um presente especial para você!</div>
+            <div class="cupom-desc">
+              Como forma de agradecimento, preparamos um presente para o seu próximo pedido:<br>
+              <strong>FRETE GRÁTIS!</strong> Use o cupom abaixo no AnotaAi e aproveite uma deliciosa massa 🍝
+            </div>
+            <div class="cupom-code">OBRIGADOIH</div>
+            <div class="cupom-sub">Válido no seu próximo pedido pelo AnotaAi</div>
+          </div>
         </div>`;
     }
 
     function showAlreadyVoted() {
       document.getElementById("formCard").innerHTML = `
-        <div class="already-voted" style="text-align:center">
-          <span class="icon" style="font-size:42px;display:block;margin-bottom:14px">✅</span>
+        <div style="text-align:center">
+          <span style="font-size:42px;display:block;margin-bottom:14px">✅</span>
           <h2 style="font-family:'Playfair Display',serif;margin-bottom:10px;font-size:22px">Você já avaliou!</h2>
           <p style="color:var(--muted);font-size:14px;line-height:1.7">
-            Sua avaliação desta loja já foi registrada.<br>
-            Agradecemos pelo seu feedback!
+            Sua avaliação desta loja já foi registrada.<br>Agradecemos pelo seu feedback!
           </p>
         </div>`;
     }
