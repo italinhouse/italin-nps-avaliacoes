@@ -148,11 +148,52 @@
     .nps-mini.good{background:#EAFAF1;color:#1E7A40} .nps-mini.warn{background:#FEF9E7;color:#7D6608} .nps-mini.none{background:#F5EDE3;color:var(--muted)}
     .stats-count { font-size:12px; color:var(--muted); }
 
+    /* RANKING */
+    .rank-card {
+      background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px 20px; margin-bottom:10px; display:flex; align-items:center; gap:16px;
+      transition:box-shadow .15s;
+    }
+    .rank-card:hover { box-shadow:0 2px 12px rgba(0,0,0,.08); }
+    .rank-pos {
+      font-family:'Playfair Display',serif; font-size:24px; font-weight:700;
+      min-width:42px; text-align:center; color:var(--muted);
+    }
+    .rank-pos.gold   { color:#C9A84C; }
+    .rank-pos.silver { color:#9E9E9E; }
+    .rank-pos.bronze { color:#A0522D; }
+    .rank-pos.danger { color:var(--red); }
+    .rank-medal { font-size:22px; }
+    .rank-info { flex:1; }
+    .rank-nome { font-size:14px; font-weight:600; color:var(--dark); }
+    .rank-uf   { font-size:11px; color:var(--muted); margin-top:2px; }
+    .rank-bar-wrap { width:180px; }
+    .rank-bar-bg { background:#F0E8DE; border-radius:20px; height:8px; overflow:hidden; }
+    .rank-bar-fill { height:8px; border-radius:20px; transition:width .4s ease; }
+    .rank-nps  { font-size:22px; font-weight:700; min-width:60px; text-align:right; }
+    .rank-stats { font-size:11px; color:var(--muted); text-align:right; margin-top:2px; }
+    .rank-sem  { opacity:.45; }
+    /* MOTIVO */
+    .motivo-tag { font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+    .motivo-elogio     { background:#EAF7EF; color:#1E7A40; }
+    .motivo-qualidade  { background:#FEF3E2; color:#7A5010; }
+    .motivo-atendimento{ background:#EEF2FF; color:#3730A3; }
+    .motivo-outro      { background:#F5EDE3; color:var(--muted); }
+    /* AUTOCOMPLETE */
+    .ac-item {
+      padding:10px 14px; cursor:pointer; font-size:13px; color:var(--text);
+      border-bottom:1px solid #F2E8DF; transition:background .1s;
+    }
+    .ac-item:last-child { border-bottom:none; }
+    .ac-item:hover { background:#FDF8F3; }
+    .ac-item strong { color:var(--red); }
+
     @media(max-width:720px){
       .content{padding:16px} .topbar{padding:0 16px}
       .kpi-grid{grid-template-columns:1fr 1fr}
       table{font-size:12px} td,th{padding:8px 10px}
       .loja-link-text{max-width:140px}
+      .rank-bar-wrap{display:none}
     }
   </style>
 </head>
@@ -185,6 +226,7 @@
   <div class="content">
     <div class="tabs">
       <div class="tab active" onclick="switchTab('avaliacoes',this)">📋 Avaliações</div>
+      <div class="tab" onclick="switchTab('ranking',this)">🏆 Ranking</div>
       <div class="tab" onclick="switchTab('lojas',this)">📊 Por Loja</div>
       <div class="tab" onclick="switchTab('links',this)">🔗 Links das Lojas (68)</div>
     </div>
@@ -211,13 +253,23 @@
           <span><span class="dot" style="background:var(--green)"></span>Promotores (9–10)</span>
         </div>
       </div>
-      <div class="filters">
-        <input class="filter-input" type="text" id="filterLoja" placeholder="🔍 Buscar loja..." oninput="renderAvalTable()"/>
+      <div class="filters" style="position:relative">
+        <div style="position:relative;flex:1;min-width:200px">
+          <input class="filter-input" type="text" id="filterLoja" placeholder="🔍 Buscar loja..." oninput="onFilterLojaInput()" autocomplete="off" style="width:100%"/>
+          <div id="lojaDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#FFF;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-height:220px;overflow-y:auto;margin-top:4px"></div>
+        </div>
         <select class="filter-input" id="filterNPS" onchange="renderAvalTable()">
           <option value="">Todos os perfis</option>
           <option value="promoter">Promotores (9–10)</option>
           <option value="passive">Passivos (7–8)</option>
           <option value="detractor">Detratores (0–6)</option>
+        </select>
+        <select class="filter-input" id="filterMotivo" onchange="renderAvalTable()">
+          <option value="">Todos os motivos</option>
+          <option value="elogio">😍 Elogio</option>
+          <option value="qualidade">🍝 Qualidade</option>
+          <option value="atendimento">🙋 Atendimento</option>
+          <option value="outro">💬 Outro</option>
         </select>
         <select class="filter-input" id="filterPeriod" onchange="renderAvalTable()">
           <option value="">Todo período</option>
@@ -237,13 +289,44 @@
             <th onclick="sortBy('criadoEm')">Data ↕</th>
             <th onclick="sortBy('lojaNome')">Loja ↕</th>
             <th onclick="sortBy('score')">Nota ↕</th>
-            <th>Perfil</th><th>Comentário</th>
+            <th>Perfil</th>
+            <th>Motivo</th>
+            <th>Comentário</th>
           </tr></thead>
           <tbody id="tableBody"></tbody>
         </table>
         <div class="empty-state" id="emptyState" style="display:none">
           <span class="icon">📭</span>Nenhuma avaliação encontrada.
         </div>
+      </div>
+    </div>
+
+    <!-- TAB: Ranking -->
+    <div id="tabRanking" style="display:none">
+      <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+        <select class="filter-input" id="filterRankingPeriod" onchange="renderRanking()">
+          <option value="">Todo período</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </select>
+        <select class="filter-input" id="filterRankingUF" onchange="renderRanking()">
+          <option value="">Todos os estados</option>
+          <option value="AL">AL</option><option value="DF">DF</option><option value="ES">ES</option>
+          <option value="GO">GO</option><option value="MG">MG</option><option value="MS">MS</option>
+          <option value="MT">MT</option><option value="PI">PI</option><option value="PR">PR</option>
+          <option value="RJ">RJ</option><option value="RS">RS</option><option value="SC">SC</option>
+          <option value="SP">SP</option>
+        </select>
+        <div style="font-size:12px;color:var(--muted);margin-left:auto" id="rankingInfo"></div>
+      </div>
+      <div id="rankingList"></div>
+    </div>
+
+    <!-- TAB: Ranking -->
+    <div id="tabRanking" style="display:none">
+      <div id="rankingWrap" style="padding:4px 0">
+        <div style="text-align:center;padding:40px;color:var(--muted)">Carregando ranking...</div>
       </div>
     </div>
 
@@ -458,6 +541,8 @@ function loadDataRealtime() {
   onSnapshot(q, snap => {
     allData = snap.docs.map(d=>({id:d.id,...d.data()}));
     updateKPIs(); renderAvalTable(); renderLojasTab(); renderLinksTable();
+    // Atualiza ranking se aba estiver ativa
+    if(document.getElementById("tabRanking")?.style.display==="block") renderRanking();
     document.getElementById("tableLoading").style.display="none";
   }, e => {
     console.error(e);
@@ -489,21 +574,80 @@ function updateKPIs() {
   document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
 }
 
-// FIX 2: renderAvalTable - KPIs refletem o filtro aplicado
+// ── CLASSIFICAÇÃO DE COMENTÁRIOS ──
+function classificarComentario(texto) {
+  if (!texto) return null;
+  const t = texto.toLowerCase();
+  const elogioKw = ['ótimo','ótima','excelente','maravilho','delicio','perfeito','incrível','incrivel','fantástico','fantastico','adorei','amei','parabéns','parabens','show','top','nota 10','recomendo','melhor','sensacional','espetacular','muito bom','muito boa'];
+  const qualidadeKw = ['comida','massa','sabor','gosto','prato','ingrediente','porção','porcao','frio','requentad','mal cozid','cru','salgad','sem sal','temperado','molho','recheio','queijo','fresco','ruim','horrível','horrivel'];
+  const atendimentoKw = ['atendimento','atendente','funcionário','funcionario','garçom','garcom','entrega','demoro','demora','rapido','rápido','educado','grosso','grossa','simpático','simpatico','mal educado','desatento','descuidado','esperei','espera','fila'];
+  if (elogioKw.some(k=>t.includes(k))) return 'elogio';
+  if (qualidadeKw.some(k=>t.includes(k))) return 'qualidade';
+  if (atendimentoKw.some(k=>t.includes(k))) return 'atendimento';
+  if (texto.trim().length > 5) return 'outro';
+  return null;
+}
+const motivoLabel = {
+  elogio: '😍 Elogio', qualidade: '🍝 Qualidade',
+  atendimento: '🙋 Atendimento', outro: '💬 Outro'
+};
+const motivoClass = {
+  elogio:'motivo-elogio', qualidade:'motivo-qualidade',
+  atendimento:'motivo-atendimento', outro:'motivo-outro'
+};
+
+// ── AUTOCOMPLETE ──
+let _lojaFiltroId = null; // ID da loja selecionada via dropdown
+let _lojaFiltroNome = null; // nome completo para PDF
+
+window.onFilterLojaInput = function() {
+  const val = document.getElementById("filterLoja").value.trim().toLowerCase();
+  _lojaFiltroId = null;
+  _lojaFiltroNome = null;
+  const dd = document.getElementById("lojaDropdown");
+  if (val.length < 2) { dd.style.display="none"; renderAvalTable(); return; }
+  const matches = LOJAS.filter(l => l.nome.toLowerCase().includes(val) || l.id.toLowerCase().includes(val)).slice(0,8);
+  if (!matches.length) { dd.style.display="none"; renderAvalTable(); return; }
+  dd.innerHTML = matches.map(l => {
+    const hl = l.nome.replace(new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<strong>${m}</strong>`);
+    return `<div class="ac-item" onclick="selectLojaFiltro('${l.id}','${l.nome.replace(/'/g,"\'")}')"><span class="state-badge" style="margin-right:6px">${l.uf}</span>${hl}</div>`;
+  }).join('');
+  dd.style.display = "block";
+};
+
+window.selectLojaFiltro = function(id, nome) {
+  _lojaFiltroId = id;
+  _lojaFiltroNome = nome;
+  document.getElementById("filterLoja").value = nome;
+  document.getElementById("lojaDropdown").style.display = "none";
+  renderAvalTable();
+};
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("#filterLoja") && !e.target.closest("#lojaDropdown")) {
+    document.getElementById("lojaDropdown").style.display = "none";
+  }
+});
+
+// FIX 2: renderAvalTable - KPIs refletem o filtro + motivo + autocomplete
 window.renderAvalTable = function() {
-  const fl=document.getElementById("filterLoja").value.toLowerCase();
+  const fl = _lojaFiltroId
+    ? null  // filtro por ID quando loja selecionada do dropdown
+    : document.getElementById("filterLoja").value.toLowerCase();
   const fn=document.getElementById("filterNPS").value;
+  const fm=document.getElementById("filterMotivo").value;
   const fp=document.getElementById("filterPeriod").value;
   const now=Date.now();
   let data=[...allData];
-  if(fl) data=data.filter(d=>(d.lojaNome||d.lojaId||"").toLowerCase().includes(fl));
+  if(_lojaFiltroId) data=data.filter(d=>d.lojaId===_lojaFiltroId);
+  else if(fl) data=data.filter(d=>(d.lojaNome||d.lojaId||"").toLowerCase().includes(fl));
   if(fn==="promoter") data=data.filter(d=>d.score>=9);
   if(fn==="passive")  data=data.filter(d=>d.score>=7&&d.score<=8);
   if(fn==="detractor")data=data.filter(d=>d.score<=6);
+  if(fm) data=data.filter(d=>classificarComentario(d.comment)===fm);
   if(fp){const days=Number(fp);data=data.filter(d=>{if(!d.criadoEm)return true;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<days*86400000;});}
-  // Atualiza KPIs com dados filtrados
-  if(fl || fn || fp) updateKPIsFiltered(data);
-  else updateKPIs();
+  const hasFilter = _lojaFiltroId||fl||fn||fp||fm;
+  if(hasFilter) updateKPIsFiltered(data); else updateKPIs();
   data.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==="criadoEm"){va=va?.toDate?.().getTime()??0;vb=vb?.toDate?.().getTime()??0;}if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;});
   const tbody=document.getElementById("tableBody");
   tbody.innerHTML="";
@@ -515,11 +659,12 @@ window.renderAvalTable = function() {
     const type=d.score>=9?"promoter":d.score>=7?"passive":"detractor";
     const label=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
     const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+    const motivo=classificarComentario(d.comment);
+    const motivoHtml=motivo?`<span class="motivo-tag ${motivoClass[motivo]}">${motivoLabel[motivo]}</span>`:`<span style="opacity:.3;font-size:11px">—</span>`;
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td style="color:var(--muted);font-size:12px">${date}</td><td><strong>${d.lojaNome||d.lojaId||"—"}</strong></td><td><span class="score-pill ${type}">${d.score}</span></td><td><span class="nps-tag ${type}">${label}</span></td><td><div class="comment-text" title="${d.comment||''}">${d.comment||'<span style="opacity:.4">sem comentário</span>'}</div></td>`;
+    tr.innerHTML=`<td style="color:var(--muted);font-size:12px">${date}</td><td><strong>${d.lojaNome||d.lojaId||"—"}</strong></td><td><span class="score-pill ${type}">${d.score}</span></td><td><span class="nps-tag ${type}">${label}</span></td><td>${motivoHtml}</td><td><div class="comment-text" title="${d.comment||''}">${d.comment||'<span style="opacity:.4">sem comentário</span>'}</div></td>`;
     tbody.appendChild(tr);
   });
-  // Salva dados filtrados para exportação
   window._dadosFiltrados = data;
 };
 window.sortBy=function(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderAvalTable();};
@@ -683,6 +828,77 @@ window.copyAllLinks=function(){
   navigator.clipboard.writeText(text).then(()=>alert(`${lojas.length} links copiados!`));
 };
 
+// ── RANKING ──
+window.renderRanking = function() {
+  const fp = document.getElementById("filterRankingPeriod")?.value||"";
+  const fuf = document.getElementById("filterRankingUF")?.value||"";
+  const now = Date.now();
+  let dados = [...allData];
+  if(fp){const days=Number(fp);dados=dados.filter(d=>{if(!d.criadoEm)return true;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<days*86400000;});}
+
+  // Montar mapa por loja
+  const map={};
+  LOJAS.forEach(l=>{
+    if(fuf && l.uf!==fuf) return;
+    map[l.id]={nome:l.nome,uf:l.uf,scores:[]};
+  });
+  dados.forEach(d=>{
+    if(map[d.lojaId]) map[d.lojaId].scores.push(d.score);
+  });
+
+  const lojas = Object.values(map).map(l=>{
+    const total=l.scores.length;
+    if(!total) return{nome:l.nome,uf:l.uf,total:0,nps:null,avg:null,pr:0,pa:0,de:0};
+    const pr=l.scores.filter(s=>s>=9).length,pa=l.scores.filter(s=>s>=7&&s<=8).length,de=l.scores.filter(s=>s<=6).length;
+    return{nome:l.nome,uf:l.uf,total,pr,pa,de,nps:Math.round(((pr-de)/total)*100),avg:(l.scores.reduce((s,v)=>s+v,0)/total).toFixed(1)};
+  });
+
+  // Separar com e sem avaliações, ordenar por NPS desc
+  const comAval = lojas.filter(l=>l.total>0).sort((a,b)=>b.nps-a.nps);
+  const semAval = lojas.filter(l=>l.total===0);
+  const ordered = [...comAval, ...semAval];
+
+  document.getElementById("rankingInfo").textContent =
+    `${comAval.length} loja${comAval.length!==1?"s":""} com avaliações · ${semAval.length} sem`;
+
+  const maxNPS = comAval.length ? Math.max(...comAval.map(l=>l.nps)) : 100;
+  const minNPS = comAval.length ? Math.min(...comAval.map(l=>l.nps)) : -100;
+
+  const container = document.getElementById("rankingList");
+  container.innerHTML = "";
+
+  ordered.forEach((l, i) => {
+    const pos = i+1;
+    const medal = pos===1?"🥇":pos===2?"🥈":pos===3?"🥉":"";
+    const posClass = pos===1?"gold":pos===2?"silver":pos===3?"bronze":l.total===0?"":"";
+    const isDanger = l.nps!==null && l.nps < 0;
+    const npsColor = l.nps===null?"var(--muted)":l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
+    const barColor = l.nps===null?"#E8D5C4":l.nps>=50?"#27AE60":l.nps>=0?"#F39C12":"#C0392B";
+    const barW = l.nps===null ? 0 : Math.max(4, Math.round(((l.nps - minNPS) / (Math.max(maxNPS-minNPS,1))) * 100));
+    const npsText = l.nps===null ? "—" : (l.nps>0?"+":"")+l.nps;
+    const card = document.createElement("div");
+    card.className = "rank-card" + (l.total===0?" rank-sem":"");
+    card.innerHTML = `
+      <div class="rank-pos ${posClass}">${medal||"#"+pos}</div>
+      <div class="rank-info">
+        <div class="rank-nome">${l.nome}</div>
+        <div class="rank-uf"><span class="state-badge">${l.uf}</span> &nbsp;${l.total} avaliação${l.total!==1?"ões":""} · Média ${l.avg||"—"}</div>
+      </div>
+      <div class="rank-bar-wrap">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-align:right">NPS</div>
+        <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${barW}%;background:${barColor}"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px">
+          <span>👍 ${l.pr}</span><span>😐 ${l.pa}</span><span>👎 ${l.de}</span>
+        </div>
+      </div>
+      <div>
+        <div class="rank-nps" style="color:${npsColor}">${npsText}</div>
+        <div class="rank-stats">NPS</div>
+      </div>`;
+    container.appendChild(card);
+  });
+};
+
 // FIX 4: exportCSV usa dados filtrados quando há filtro ativo
 window.exportCSV=function(){
   const data = window._dadosFiltrados || allData;
@@ -698,8 +914,9 @@ window.exportCSV=function(){
 window.exportPDF=function(){
   const data = window._dadosFiltrados || allData;
   if(!data.length){ alert("Nenhuma avaliação para exportar."); return; }
-  const fl = document.getElementById("filterLoja").value || "Todas as lojas";
-  const titulo = fl !== "Todas as lojas" ? `Relatório NPS — ${fl}` : "Relatório NPS — Ital'in House";
+  // Usa nome completo da loja selecionada (não o texto digitado)
+  const nomeLoja = _lojaFiltroNome || document.getElementById("filterLoja").value || "";
+  const titulo = nomeLoja ? `Relatório NPS — ${nomeLoja}` : "Relatório NPS — Ital'in House";
   const pr=data.filter(d=>d.score>=9).length;
   const de=data.filter(d=>d.score<=6).length;
   const pa=data.filter(d=>d.score>=7&&d.score<=8).length;
@@ -760,12 +977,126 @@ function dlCSV(rows,filename){
 }
 function today(){return new Date().toISOString().slice(0,10);}
 
-window.switchTab=function(tab,el){
+
+// ── Autocomplete de loja ──
+let _lojaFiltrada = null; // loja selecionada pelo autocomplete
+
+window.onFilterLojaInput = function() {
+  const val = document.getElementById("filterLoja").value.toLowerCase().trim();
+  const dd = document.getElementById("acDropdown");
+  _lojaFiltrada = null; // reset seleção
+  if(!val || val.length < 2){ dd.style.display="none"; renderAvalTable(); return; }
+  const matches = LOJAS.filter(l => l.nome.toLowerCase().includes(val)).slice(0,8);
+  if(!matches.length){ dd.style.display="none"; renderAvalTable(); return; }
+  dd.innerHTML = matches.map(l =>
+    `<div class="ac-item" onclick="selectLoja('${l.id}','${l.nome.replace(/'/g,"\'")}')">
+      <strong style="color:var(--red)">${l.nome.replace(new RegExp(val,'gi'), m=>`<mark style="background:#FFE8E5;color:var(--red)">${m}</mark>`)}</strong>
+      <span style="font-size:11px;color:var(--muted);margin-left:8px">${l.uf} · ${l.id}</span>
+    </div>`
+  ).join("");
+  dd.style.display = "block";
+  renderAvalTable();
+};
+
+window.selectLoja = function(id, nome) {
+  _lojaFiltrada = { id, nome };
+  document.getElementById("filterLoja").value = nome;
+  document.getElementById("acDropdown").style.display = "none";
+  renderAvalTable();
+};
+
+document.addEventListener("click", e => {
+  if(!e.target.closest("#filterLoja") && !e.target.closest("#acDropdown"))
+    document.getElementById("acDropdown").style.display="none";
+});
+
+// ── Classificação automática de comentário ──
+function classificarComentario(text) {
+  if(!text) return null;
+  const t = text.toLowerCase();
+  const palavrasQualidade = ["comida","massa","molho","sabor","gosto","frio","quente","cru","fora do ponto","porção","prato","ingrediente","tempero","pizza","macarrão","frango","carne","queijo","ruim","péssimo","nojento","estragado","vencido"];
+  const palavrasAtendimento = ["atendimento","garçom","garçonete","funcionário","entregador","delivery","entrega","demorou","demora","rápido","grosseiro","educado","simpático","mal","mau","mal atendido","esperei","espera","atendente","caixa","motoboy"];
+  const palavrasElogio = ["ótimo","excelente","perfeito","adorei","amei","incrível","maravilhoso","parabéns","recomendo","top","sensacional","muito bom","gostei","satisfeito","feliz","nota 10","sempre","voltarei","volto","demais","especial"];
+  const hasQualidade = palavrasQualidade.some(p => t.includes(p));
+  const hasAtendimento = palavrasAtendimento.some(p => t.includes(p));
+  const hasElogio = palavrasElogio.some(p => t.includes(p));
+  if(hasElogio && !hasQualidade && !hasAtendimento) return "elogio";
+  if(hasQualidade && hasAtendimento) return "qualidade+atendimento";
+  if(hasQualidade) return "qualidade";
+  if(hasAtendimento) return "atendimento";
+  if(hasElogio) return "elogio";
+  return null;
+}
+
+function badgeClassificacao(c) {
+  if(!c) return "";
+  const map = {
+    "elogio": ["#EAFAF1","#1E7A40","⭐ Elogio"],
+    "qualidade": ["#FDEDEC","#922B21","🍝 Qualidade"],
+    "atendimento": ["#FEF9E7","#7D6608","👤 Atendimento"],
+    "qualidade+atendimento": ["#FDEDEC","#922B21","⚠️ Qualidade+Atendimento"],
+  };
+  const [bg, color, label] = map[c] || ["#F5EDE3","#7A5A50",c];
+  return `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:${bg};color:${color};white-space:nowrap">${label}</span>`;
+}
+
+// ── Ranking ──
+window.renderRanking = function() {
+  const lojas = buildLojasData().filter(l => l.total > 0)
+    .sort((a,b) => (b.nps??-999) - (a.nps??-999));
+  const destaque = lojas.slice(0, Math.min(5, lojas.length));
+  const alerta   = [...lojas].reverse().slice(0, Math.min(5, lojas.length));
+
+  function card(l, pos) {
+    const posClass = pos===1?"gold":pos===2?"silver":pos===3?"bronze":pos<0?"danger":"";
+    const posLabel = pos>0 ? `#${pos}` : `#${lojas.length+pos+1}`;
+    const npsColor = l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
+    const barW = Math.max(0, Math.min(100, ((l.nps+100)/200)*100));
+    return `<div class="rank-card">
+      <div class="rank-pos ${posClass}">${posLabel}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.nome}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${l.total} avaliação${l.total!==1?"ões":""} · Média ${l.avg}</div>
+        <div class="rank-bar-wrap" style="margin-top:8px;height:6px;background:#F2E8DF;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${barW}%;background:${npsColor};border-radius:4px;transition:width .5s"></div>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:70px">
+        <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:${npsColor}">${l.nps>0?"+":""}${l.nps}</div>
+        <div style="font-size:11px;color:var(--muted)">NPS</div>
+      </div>
+    </div>`;
+  }
+
+  const wrap = document.getElementById("rankingWrap");
+  if(!wrap) return;
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+          🏆 <span>Destaques</span>
+          <span style="font-size:11px;font-weight:400;color:var(--muted)">(maior NPS)</span>
+        </h3>
+        ${destaque.length ? destaque.map((l,i)=>card(l,i+1)).join("") : '<p style="color:var(--muted);font-size:13px">Sem avaliações ainda.</p>'}
+      </div>
+      <div>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+          ⚠️ <span>Precisam de atenção</span>
+          <span style="font-size:11px;font-weight:400;color:var(--muted)">(menor NPS)</span>
+        </h3>
+        ${alerta.length ? alerta.map((l,i)=>card(l,-i)).join("") : '<p style="color:var(--muted);font-size:13px">Sem avaliações ainda.</p>'}
+      </div>
+    </div>`;
+};
+
+window.switchTab=function(tab,el){window.switchTab=function(tab,el){
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   el.classList.add("active");
   document.getElementById("tabAvaliacoes").style.display=tab==="avaliacoes"?"block":"none";
+  document.getElementById("tabRanking").style.display=tab==="ranking"?"block":"none";
   document.getElementById("tabLojas").style.display=tab==="lojas"?"block":"none";
   document.getElementById("tabLinks").style.display=tab==="links"?"block":"none";
+  if(tab==="ranking") renderRanking();
 };
 </script>
 </body>
