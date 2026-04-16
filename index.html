@@ -42,12 +42,19 @@
     /* ── Header ── */
     header {
       text-align: center;
-      padding: 36px 24px 20px;
+      padding: 0;
+    }
+    .header-bar {
+      background: var(--red);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     header img {
-      height: 64px;
+      height: 52px;
       object-fit: contain;
-      filter: invert(21%) sepia(95%) saturate(700%) hue-rotate(340deg) brightness(85%) contrast(110%);
+      filter: brightness(0) invert(1);
     }
 
     /* ── Main card ── */
@@ -304,7 +311,9 @@
 <body>
 
   <header>
-    <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House" />
+    <div class="header-bar">
+      <img src="https://d7jztl9hjt0p1.cloudfront.net/1.0.0.119/assets/images/home/logo@3x.png" alt="Ital'in House" />
+    </div>
   </header>
 
   <main>
