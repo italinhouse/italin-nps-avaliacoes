@@ -664,6 +664,239 @@ window.switchTab=function(tab,el){
   if(tab==="ranking") renderRanking();
 };
 
+
+// ── renderLinksTable ──
+function renderLinksTable() {
+  const fl=document.getElementById("filterLinks")?.value.toLowerCase()||"";
+  const fe=document.getElementById("filterEstado")?.value||"";
+  let lojas=LOJAS;
+  if(fl)lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl)||l.id.toLowerCase().includes(fl));
+  if(fe)lojas=lojas.filter(l=>l.uf===fe);
+  const tbody=document.getElementById("linksBody");
+  if(!tbody)return;
+  tbody.innerHTML="";
+  lojas.forEach((loja,i)=>{
+    const link=makeLink(loja);
+    const stats=getLojaStats(loja.id);
+    const statsHtml=stats
+      ?`<span class="stats-count">${stats.total} aval.</span> <span class="nps-mini ${stats.nps>=50?"good":stats.nps>=0?"warn":"none"}">${stats.nps>0?"+":""}${stats.nps} NPS</span>`
+      :`<span class="nps-mini none">Sem avaliações</span>`;
+    const msg=encodeURIComponent(`Olá! Avalie sua experiência na ${loja.nome}: ${link}`);
+    const tr=document.createElement("tr");
+    tr.className="link-row";
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><strong style="font-size:13px">${loja.nome}</strong></td>
+      <td><span class="state-badge">${loja.uf}</span></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${loja.id}</td>
+      <td><span class="loja-link-text" title="${link}">${link}</span></td>
+      <td>${statsHtml}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="copy-btn" data-link="${link}" onclick="copyLink(this.dataset.link,this)">📋 Copiar</button>
+        <a class="wa-btn" href="https://wa.me/?text=${msg}" target="_blank">💬 WA</a>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+  const el=document.getElementById("linksCount");
+  if(el)el.textContent=`Exibindo ${lojas.length} de ${LOJAS.length} lojas`;
+}
+window.renderLinksTable = renderLinksTable;
+
+// ── renderAvalTable ──
+let _lojaFiltrada = null;
+let sortCol="criadoEm", sortAsc=false;
+
+window.renderAvalTable = function() {
+  const fl=document.getElementById("filterLoja")?.value.toLowerCase()||"";
+  const fn=document.getElementById("filterNPS")?.value||"";
+  const fp=document.getElementById("filterPeriod")?.value||"";
+  const now=Date.now();
+  let data=[...allData];
+  if(_lojaFiltrada) data=data.filter(d=>d.lojaId===_lojaFiltrada.id);
+  else if(fl) data=data.filter(d=>(d.lojaNome||d.lojaId||"").toLowerCase().includes(fl));
+  if(fn==="promoter") data=data.filter(d=>d.score>=9);
+  if(fn==="passive")  data=data.filter(d=>d.score>=7&&d.score<=8);
+  if(fn==="detractor")data=data.filter(d=>d.score<=6);
+  if(fp){const days=Number(fp);data=data.filter(d=>{if(!d.criadoEm)return true;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<days*86400000;});}
+  if(fl||fn||fp) updateKPIsFiltered(data); else updateKPIs();
+  data.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(sortCol==="criadoEm"){va=va?.toDate?.().getTime()??0;vb=vb?.toDate?.().getTime()??0;}if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;});
+  const tbody=document.getElementById("tableBody");
+  tbody.innerHTML="";
+  document.getElementById("tableLoading").style.display="none";
+  if(!data.length){document.getElementById("avalTable").style.display="none";document.getElementById("emptyState").style.display="block";return;}
+  document.getElementById("avalTable").style.display="table";
+  document.getElementById("emptyState").style.display="none";
+  data.forEach(d=>{
+    const type=d.score>=9?"promoter":d.score>=7?"passive":"detractor";
+    const label=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";
+    const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+    const classif=classificarComentario(d.comment);
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td style="color:var(--muted);font-size:12px">${date}</td><td><strong>${d.lojaNome||d.lojaId||"—"}</strong></td><td><span class="score-pill ${type}">${d.score}</span></td><td><span class="nps-tag ${type}">${label}</span></td><td>${badgeClassificacao(classif)||'<span style="opacity:.4;font-size:12px">—</span>'}</td><td><div class="comment-text" title="${d.comment||''}">${d.comment||'<span style="opacity:.4">sem comentário</span>'}</div></td>`;
+    tbody.appendChild(tr);
+  });
+  window._dadosFiltrados = data;
+};
+window.sortBy=function(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}window.renderAvalTable();};
+
+// ── renderLojasTab ──
+let lojasSortCol="nps", lojasSortAsc=false;
+window.renderLojasTab = function() {
+  const fl=document.getElementById("filterLojaTab")?.value.toLowerCase()||"";
+  const fuf=document.getElementById("filterUFTab")?.value||"";
+  const fnps=document.getElementById("filterNPSTab")?.value||"";
+  let lojas=buildLojasData();
+  if(fl) lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl));
+  if(fuf) lojas=lojas.filter(l=>l.uf===fuf);
+  if(fnps==="bom")  lojas=lojas.filter(l=>l.nps!==null&&l.nps>=50);
+  if(fnps==="medio")lojas=lojas.filter(l=>l.nps!==null&&l.nps>=0&&l.nps<50);
+  if(fnps==="ruim") lojas=lojas.filter(l=>l.nps!==null&&l.nps<0);
+  if(fnps==="sem")  lojas=lojas.filter(l=>l.total===0);
+  lojas.sort((a,b)=>{let va=a[lojasSortCol]??-9999,vb=b[lojasSortCol]??-9999;if(lojasSortCol==="nome"){va=a.nome;vb=b.nome;}if(va<vb)return lojasSortAsc?-1:1;if(va>vb)return lojasSortAsc?1:-1;return 0;});
+  document.getElementById("lojasLoading").style.display="none";
+  document.getElementById("lojaEmpty").style.display="none";
+  if(!lojas.length){document.getElementById("lojaTable").style.display="none";document.getElementById("lojaEmpty").style.display="block";document.getElementById("lojaCount").textContent="";return;}
+  document.getElementById("lojaTable").style.display="table";
+  document.getElementById("lojaCount").textContent=`${lojas.length} loja${lojas.length!==1?"s":""} encontrada${lojas.length!==1?"s":""}`;
+  const tbody=document.getElementById("lojaBody");tbody.innerHTML="";
+  lojas.forEach(l=>{
+    const nc=l.nps===null?"var(--muted)":l.nps>=50?"var(--green)":l.nps>=0?"var(--yellow)":"var(--red)";
+    const npsText=l.nps===null?'<span style="opacity:.4">—</span>':(l.nps>0?"+":"")+l.nps;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><strong>${l.nome}</strong></td><td><span class="state-badge">${l.uf}</span></td><td>${l.total||'<span style="opacity:.4">0</span>'}</td><td>${l.avg||'<span style="opacity:.4">—</span>'}</td><td style="font-weight:600;color:${nc}">${npsText}</td><td style="color:var(--green)">${l.pr||0}</td><td style="color:var(--yellow)">${l.pa||0}</td><td style="color:var(--red)">${l.de||0}</td>`;
+    tbody.appendChild(tr);
+  });
+};
+window.sortLojas=function(col){if(lojasSortCol===col)lojasSortAsc=!lojasSortAsc;else{lojasSortCol=col;lojasSortAsc=false;}window.renderLojasTab();};
+
+// ── buildLojasData ──
+function buildLojasData() {
+  const map={};
+  allData.forEach(d=>{const key=d.lojaId||d.lojaNome||"?";const nome=d.lojaNome||d.lojaId||"?";const lojaObj=LOJAS.find(l=>l.id===d.lojaId)||{uf:"?"};if(!map[key])map[key]={nome,uf:lojaObj.uf,scores:[]};map[key].scores.push(d.score);});
+  LOJAS.forEach(l=>{if(!map[l.id])map[l.id]={nome:l.nome,uf:l.uf,scores:[]};});
+  return Object.values(map).map(l=>{const total=l.scores.length;if(!total)return{nome:l.nome,uf:l.uf,total:0,pr:0,pa:0,de:0,nps:null,avg:null};const pr=l.scores.filter(s=>s>=9).length,pa=l.scores.filter(s=>s>=7&&s<=8).length,de=l.scores.filter(s=>s<=6).length;return{nome:l.nome,uf:l.uf,total,pr,pa,de,nps:Math.round(((pr-de)/total)*100),avg:(l.scores.reduce((s,v)=>s+v,0)/total).toFixed(1)};});
+}
+
+// ── getLojaStats ──
+function getLojaStats(lojaId) {
+  const rows=allData.filter(d=>d.lojaId===lojaId);
+  if(!rows.length)return null;
+  const total=rows.length,pr=rows.filter(d=>d.score>=9).length,de=rows.filter(d=>d.score<=6).length;
+  return{total,nps:Math.round(((pr-de)/total)*100),avg:(rows.reduce((s,d)=>s+d.score,0)/total).toFixed(1)};
+}
+
+// ── populateEstadoFilter ──
+function populateEstadoFilter() {
+  const ufs=[...new Set(LOJAS.map(l=>l.uf))].sort();
+  const sel=document.getElementById("filterEstado");
+  if(!sel||sel.options.length>1)return;
+  ufs.forEach(uf=>{const o=document.createElement("option");o.value=uf;o.textContent=uf;sel.appendChild(o);});
+}
+
+// ── copyLink ──
+window.copyLink=function(link,btn){
+  navigator.clipboard.writeText(link).then(()=>{btn.textContent="✓ Copiado!";btn.classList.add("copied");setTimeout(()=>{btn.textContent="📋 Copiar";btn.classList.remove("copied");},2000);});
+};
+window.copyAllLinks=function(){
+  const fl=document.getElementById("filterLinks")?.value.toLowerCase()||"";
+  const fe=document.getElementById("filterEstado")?.value||"";
+  let lojas=LOJAS;
+  if(fl)lojas=lojas.filter(l=>l.nome.toLowerCase().includes(fl));
+  if(fe)lojas=lojas.filter(l=>l.uf===fe);
+  const text=lojas.map(l=>`${l.nome}\n${makeLink(l)}`).join("\n\n");
+  navigator.clipboard.writeText(text).then(()=>alert(`${lojas.length} links copiados!`));
+};
+window.exportLinksCSV=function(){
+  const rows=[["#","Loja","UF","ID","Link NPS","Avaliações","NPS","Média"]];
+  LOJAS.forEach((l,i)=>{const s=getLojaStats(l.id);rows.push([i+1,l.nome,l.uf,l.id,makeLink(l),s?.total||0,s?.nps??"",s?.avg||""]);});
+  dlCSV(rows,`nps_links_lojas_${today()}.csv`);
+};
+
+// ── updateKPIs ──
+function updateKPIs() {
+  const total=allData.length;
+  const pr=allData.filter(d=>d.score>=9).length;
+  const de=allData.filter(d=>d.score<=6).length;
+  const pa=allData.filter(d=>d.score>=7&&d.score<=8).length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(allData.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const now=Date.now();
+  const hoje=allData.filter(d=>{if(!d.criadoEm)return false;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<86400000;}).length;
+  const lojasAtivas=new Set(allData.map(d=>d.lojaId)).size;
+  document.getElementById("kpiTotal").textContent=total;
+  document.getElementById("kpiNPS").textContent=(nps>0?"+":"")+nps;
+  document.getElementById("kpiMedia").textContent=avg;
+  document.getElementById("kpiHoje").textContent=hoje;
+  document.getElementById("kpiLojas").textContent=lojasAtivas;
+  const dPct=total?(de/total)*100:33,pPct=total?(pa/total)*100:33,prPct=total?(pr/total)*100:34;
+  document.getElementById("barDetrator").style.flex=dPct;
+  document.getElementById("barPassivo").style.flex=pPct;
+  document.getElementById("barPromotor").style.flex=prPct;
+  document.getElementById("barDetrator").textContent=dPct>8?`${Math.round(dPct)}% Det.`:"";
+  document.getElementById("barPassivo").textContent=pPct>8?`${Math.round(pPct)}% Pas.`:"";
+  document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
+}
+function updateKPIsFiltered(data) {
+  const total=data.length;
+  const pr=data.filter(d=>d.score>=9).length;
+  const de=data.filter(d=>d.score<=6).length;
+  const pa=data.filter(d=>d.score>=7&&d.score<=8).length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(data.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const now=Date.now();
+  const hoje=data.filter(d=>{if(!d.criadoEm)return false;const ts=d.criadoEm.toDate?.().getTime()??0;return(now-ts)<86400000;}).length;
+  const lojasAtivas=new Set(data.map(d=>d.lojaId)).size;
+  document.getElementById("kpiTotal").textContent=total;
+  document.getElementById("kpiNPS").textContent=(nps>0?"+":"")+nps;
+  document.getElementById("kpiMedia").textContent=avg;
+  document.getElementById("kpiHoje").textContent=hoje;
+  document.getElementById("kpiLojas").textContent=lojasAtivas;
+  const dPct=total?(de/total)*100:33,pPct=total?(pa/total)*100:33,prPct=total?(pr/total)*100:34;
+  document.getElementById("barDetrator").style.flex=dPct;
+  document.getElementById("barPassivo").style.flex=pPct;
+  document.getElementById("barPromotor").style.flex=prPct;
+  document.getElementById("barDetrator").textContent=dPct>8?`${Math.round(dPct)}% Det.`:"";
+  document.getElementById("barPassivo").textContent=pPct>8?`${Math.round(pPct)}% Pas.`:"";
+  document.getElementById("barPromotor").textContent=prPct>8?`${Math.round(prPct)}% Pro.`:"";
+}
+
+// ── autocomplete loja ──
+window.onFilterLojaInput = function() {
+  const val=document.getElementById("filterLoja").value.toLowerCase().trim();
+  const dd=document.getElementById("acDropdown");
+  _lojaFiltrada=null;
+  if(!val||val.length<2){dd.style.display="none";window.renderAvalTable();return;}
+  const matches=LOJAS.filter(l=>l.nome.toLowerCase().includes(val)).slice(0,8);
+  if(!matches.length){dd.style.display="none";window.renderAvalTable();return;}
+  dd.innerHTML=matches.map(l=>`<div class="ac-item" onclick="selectLoja('${l.id}','${l.nome.replace(/'/g,"\\'")}')">${l.nome} <span style="font-size:11px;color:var(--muted)">${l.uf}</span></div>`).join("");
+  dd.style.display="block";
+  window.renderAvalTable();
+};
+window.selectLoja=function(id,nome){_lojaFiltrada={id,nome};document.getElementById("filterLoja").value=nome;document.getElementById("acDropdown").style.display="none";window.renderAvalTable();};
+document.addEventListener("click",e=>{if(!e.target.closest("#filterLoja")&&!e.target.closest("#acDropdown"))document.getElementById("acDropdown").style.display="none";});
+
+// ── exportCSV / exportPDF / helpers ──
+window.exportCSV=function(){
+  const data=window._dadosFiltrados||allData;
+  const rows=[["Data","Loja","ID","Nota","Perfil","Comentário"]];
+  data.forEach(d=>{const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR"):"";const type=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";rows.push([date,d.lojaNome||"",d.lojaId||"",d.score,type,(d.comment||"").replace(/,/g,";")]);});
+  dlCSV(rows,`nps_avaliacoes_${today()}.csv`);
+};
+window.exportPDF=function(){
+  const data=window._dadosFiltrados||allData;
+  if(!data.length){alert("Nenhuma avaliação para exportar.");return;}
+  const nomeLoja=_lojaFiltrada?_lojaFiltrada.nome:(document.getElementById("filterLoja").value||null);
+  const titulo=nomeLoja?`Relatório NPS — ${nomeLoja}`:"Relatório NPS — Ital'in House";
+  const pr=data.filter(d=>d.score>=9).length,de=data.filter(d=>d.score<=6).length,pa=data.filter(d=>d.score>=7&&d.score<=8).length,total=data.length;
+  const nps=total?Math.round(((pr-de)/total)*100):0;
+  const avg=total?(data.reduce((s,d)=>s+d.score,0)/total).toFixed(1):"—";
+  const rows=data.map(d=>{const date=d.criadoEm?.toDate?d.criadoEm.toDate().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";const type=d.score>=9?"Promotor":d.score>=7?"Passivo":"Detrator";return`<tr><td>${date}</td><td>${d.lojaNome||d.lojaId||"—"}</td><td style="text-align:center;font-weight:bold">${d.score}</td><td>${type}</td><td>${d.comment||""}</td></tr>`;}).join("");
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>${titulo}</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#1A0A05}h1{color:#C0392B;font-size:20px;margin-bottom:4px}.sub{color:#7A5A50;font-size:12px;margin-bottom:24px}.kpis{display:flex;gap:16px;margin-bottom:24px}.kpi{background:#FDF6EE;border:1px solid #E8D5C4;border-radius:8px;padding:12px 20px;text-align:center}.kpi-v{font-size:28px;font-weight:bold;color:#C0392B}.kpi-l{font-size:11px;color:#7A5A50;text-transform:uppercase}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#C0392B;color:#FFF;padding:8px 10px;text-align:left}td{padding:7px 10px;border-bottom:1px solid #F2E8DF}tr:nth-child(even) td{background:#FDF8F3}</style></head><body><h1>🍝 ${titulo}</h1><div class="sub">Gerado em ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})} · ${total} avaliação${total!==1?"ões":""}</div><div class="kpis"><div class="kpi"><div class="kpi-v">${total}</div><div class="kpi-l">Total</div></div><div class="kpi"><div class="kpi-v" style="color:${nps>=50?"#27AE60":nps>=0?"#F39C12":"#C0392B"}">${nps>0?"+":""}${nps}</div><div class="kpi-l">NPS</div></div><div class="kpi"><div class="kpi-v" style="color:#27AE60">${avg}</div><div class="kpi-l">Média</div></div><div class="kpi"><div class="kpi-v" style="color:#27AE60">${pr}</div><div class="kpi-l">Promotores</div></div><div class="kpi"><div class="kpi-v" style="color:#F39C12">${pa}</div><div class="kpi-l">Passivos</div></div><div class="kpi"><div class="kpi-v" style="color:#C0392B">${de}</div><div class="kpi-l">Detratores</div></div></div><table><thead><tr><th>Data</th><th>Loja</th><th>Nota</th><th>Perfil</th><th>Comentário</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>{window.print()}<\/script></body></html>`;
+  const w=window.open("","_blank");w.document.write(html);w.document.close();
+};
+function dlCSV(rows,filename){const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");Object.assign(document.createElement("a"),{href:"data:text/csv;charset=utf-8,"+encodeURIComponent("\uFEFF"+csv),download:filename}).click();}
+function today(){return new Date().toISOString().slice(0,10);}
+
 // ── Auth (chamado depois que todas as funções estão definidas) ──
 window.doLogin = function() {
   const u=document.getElementById("loginUser").value.trim();
