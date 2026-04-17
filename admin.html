@@ -516,27 +516,16 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 let allData=[], sortCol="criadoEm", sortAsc=false;
 
-// Auth
-window.doLogin = function() {
-  const u=document.getElementById("loginUser").value.trim();
-  const p=document.getElementById("loginPass").value;
-  const err=document.getElementById("loginError");
-  if(ADMIN_USERS[u]&&ADMIN_USERS[u]===p){ sessionStorage.setItem("italin_admin","ok"); showDashboard(); }
-  else{ err.style.display="block"; document.getElementById("loginPass").value=""; }
-};
-window.doLogout = () => { sessionStorage.removeItem("italin_admin"); location.reload(); };
-if(sessionStorage.getItem("italin_admin")==="ok") showDashboard();
-
-window.showDashboard = async function showDashboard() {
+// ── Funções definidas PRIMEIRO, depois chamadas ──
+async function showDashboard() {
   document.getElementById("loginScreen").style.display="none";
   document.getElementById("dashboard").style.display="block";
   populateEstadoFilter();
   renderLinksTable();
-  loadDataRealtime();
+  await loadDataRealtime();
 }
 
-// Carrega rápido com getDocs + onSnapshot leve apenas para novas avaliações
-window.loadDataRealtime = async function loadDataRealtime() {
+async function loadDataRealtime() {
   try {
     // 1. Carga inicial rápida com getDocs
     const snap = await getDocs(query(collection(db,"avaliacoes"), orderBy("criadoEm","desc")));
@@ -674,6 +663,18 @@ window.switchTab=function(tab,el){
   document.getElementById("tabLinks").style.display=tab==="links"?"block":"none";
   if(tab==="ranking") renderRanking();
 };
+
+// ── Auth (chamado depois que todas as funções estão definidas) ──
+window.doLogin = function() {
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginError");
+  if(ADMIN_USERS[u]&&ADMIN_USERS[u]===p){ sessionStorage.setItem("italin_admin","ok"); showDashboard(); }
+  else{ err.style.display="block"; document.getElementById("loginPass").value=""; }
+};
+window.doLogout = () => { sessionStorage.removeItem("italin_admin"); location.reload(); };
+// Verificar sessão ao carregar
+if(sessionStorage.getItem("italin_admin")==="ok") showDashboard();
 </script>
 </body>
 </html>
