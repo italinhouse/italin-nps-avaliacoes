@@ -527,7 +527,7 @@ window.doLogin = function() {
 window.doLogout = () => { sessionStorage.removeItem("italin_admin"); location.reload(); };
 if(sessionStorage.getItem("italin_admin")==="ok") showDashboard();
 
-async function showDashboard() {
+window.showDashboard = async function showDashboard() {
   document.getElementById("loginScreen").style.display="none";
   document.getElementById("dashboard").style.display="block";
   populateEstadoFilter();
@@ -536,7 +536,7 @@ async function showDashboard() {
 }
 
 // Carrega rápido com getDocs + onSnapshot leve apenas para novas avaliações
-async function loadDataRealtime() {
+window.loadDataRealtime = async function loadDataRealtime() {
   try {
     // 1. Carga inicial rápida com getDocs
     const snap = await getDocs(query(collection(db,"avaliacoes"), orderBy("criadoEm","desc")));
