@@ -45,6 +45,14 @@
     }
     .login-btn:hover { opacity:.88; }
     .login-error { color:#F1948A; font-size:13px; margin-top:10px; display:none; }
+    .pass-wrap { position:relative; margin-bottom:12px; }
+    .pass-wrap .login-input { margin-bottom:0; padding-right:48px; }
+    .pass-toggle {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:rgba(255,255,255,.4);
+      font-size:18px; line-height:1; padding:4px; transition:color .2s; user-select:none;
+    }
+    .pass-toggle:hover { color:rgba(255,255,255,.85); }
 
     /* DASHBOARD */
     #dashboard { display:none; min-height:100vh; }
@@ -206,7 +214,10 @@
     <h2>Painel Administrativo</h2>
     <p>Sistema de avaliações NPS</p>
     <input class="login-input" type="email" id="loginUser" placeholder="E-mail" autocomplete="email"/>
-    <input class="login-input" type="password" id="loginPass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div class="pass-wrap">
+      <input class="login-input" type="password" id="loginPass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button type="button" class="pass-toggle" onclick="toggleSenha()" id="passToggleBtn" title="Mostrar/ocultar senha">👁</button>
+    </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="loginError">Usuário ou senha incorretos.</div>
   </div>
@@ -896,6 +907,23 @@ window.exportPDF=function(){
 };
 function dlCSV(rows,filename){const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");Object.assign(document.createElement("a"),{href:"data:text/csv;charset=utf-8,"+encodeURIComponent("\uFEFF"+csv),download:filename}).click();}
 function today(){return new Date().toISOString().slice(0,10);}
+
+
+// ── Mostrar/ocultar senha ──
+window.toggleSenha = function() {
+  const input = document.getElementById("loginPass");
+  const btn = document.getElementById("passToggleBtn");
+  if(input.type === "password") {
+    input.type = "text";
+    btn.textContent = "🙈";
+    btn.title = "Ocultar senha";
+  } else {
+    input.type = "password";
+    btn.textContent = "👁";
+    btn.title = "Mostrar senha";
+  }
+  input.focus();
+};
 
 // ── Auth (chamado depois que todas as funções estão definidas) ──
 window.doLogin = function() {
