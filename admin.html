@@ -415,7 +415,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, query, orderBy, onSnapshot }
+import { getFirestore, collection, query, orderBy, limit, getDocs, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ══════════════════════════════════════════
@@ -535,19 +535,31 @@ async function showDashboard() {
   loadDataRealtime();
 }
 
-// FIX 1: onSnapshot - carregamento em tempo real sem precisar entrar/sair
-function loadDataRealtime() {
-  const q = query(collection(db,"avaliacoes"), orderBy("criadoEm","desc"));
-  onSnapshot(q, snap => {
+// Carrega rápido com getDocs + onSnapshot leve apenas para novas avaliações
+async function loadDataRealtime() {
+  try {
+    // 1. Carga inicial rápida com getDocs
+    const snap = await getDocs(query(collection(db,"avaliacoes"), orderBy("criadoEm","desc")));
     allData = snap.docs.map(d=>({id:d.id,...d.data()}));
-    updateKPIs(); renderAvalTable(); renderLojasTab(); renderLinksTable();
-    // Atualiza ranking se aba estiver ativa
-    if(document.getElementById("tabRanking")?.style.display==="block") renderRanking();
+    updateKPIs(); renderAvalTable(); renderLojasTab();
     document.getElementById("tableLoading").style.display="none";
-  }, e => {
+
+    // 2. onSnapshot apenas para detectar NOVAS avaliações (limit 1 = só a mais recente)
+    onSnapshot(query(collection(db,"avaliacoes"), orderBy("criadoEm","desc"), limit(1)), async () => {
+      // Quando chegar avaliação nova, recarrega tudo
+      const snap2 = await getDocs(query(collection(db,"avaliacoes"), orderBy("criadoEm","desc")));
+      const newData = snap2.docs.map(d=>({id:d.id,...d.data()}));
+      // Só re-renderiza se houver mudança real
+      if(newData.length !== allData.length) {
+        allData = newData;
+        updateKPIs(); renderAvalTable(); renderLojasTab(); renderLinksTable();
+        if(document.getElementById("tabRanking")?.style.display==="block") renderRanking();
+      }
+    });
+  } catch(e) {
     console.error(e);
     document.getElementById("tableLoading").textContent="Erro ao carregar. Verifique o Firebase.";
-  });
+  }
 }
 
 function updateKPIs() {
